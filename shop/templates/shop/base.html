@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NovaKart | {% block title %}{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'shop/css/style.css' %}" />
+  </head>
+  <body>
+    <header>
+      <nav>
+        <h1>
+          <a href="{% url 'shop:home' %}">NovaKart</a>
+          <ul>
+            <li><a href="{% url 'shop:home' %}">Home</a></li>
+          </ul>
+        </h1>
+      </nav>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+    <footer>
+      <p>© 2025 NovaKart</p>
+    </footer>
+  </body>
+</html>

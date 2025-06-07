@@ -31,7 +31,7 @@ class Category(models.Model):
         Returns the URL to a specific category's product list.
         This is a placeholder and assumes a URL pattern named 'shop:product_list_by_category'.
         """
-        return reverse('products:product_list_by_category', args=[self.slug])
+        return reverse('shop:product_list_by_category', args=[self.slug])
   
     def __str__(self):
         """

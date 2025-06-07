@@ -2,11 +2,12 @@
 {% load static %}
 
 {% block title %}
-    {% if category %}{{category.name}}{% else %}Products{% endif %}
+    {% if category %}{{ category.name }}{% else %}Products{% endif %}
 {% endblock %}
 
 {% block content %}
-    <div id="sidebar" style="float: left; width: 20%; padding-right: 20px;">
+<main class="product-grid-container">
+    <aside id="sidebar">
         <h3>Categories</h3>
         <ul>
             <li {% if not category %}class="selected"{% endif %}>
@@ -18,19 +19,23 @@
                 </li>
             {% endfor %}
         </ul>
-    </div>
-    <div id="main" style="float: left; width: 75%;">
+    </aside>
+
+    <section id="main-content">
         <h1>{% if category %}{{ category.name }}{% else %}Products{% endif %}</h1>
         <div class="product-list">
             {% for product in products %}
-                <div class="item" style="display: inline-block; width: 200px; margin: 10px; text-align: center;">
+                <div class="product-card">
                     <a href="{{ product.get_absolute_url }}">
-                        <img src="{% if product.image %}{{ product.image.url }}{% else %}{% static 'shop/img/no_image.png' %}{% endif %}" alt="{{ product.name }}" style="max-width: 100%; height: auto;">
+                        <img src="{% if product.image %}{{ product.image.url }}{% else %}{% static 'shop/img/no_image.png' %}{% endif %}" alt="{{ product.name }}">
                     </a>
-                    <a href="{{ product.get_absolute_url }}">{{ product.name }}</a><br>
-                    ${{ product.price }}
+                    <div class="product-info">
+                      <a href="{{ product.get_absolute_url }}">{{ product.name }}</a>
+                      <p>${{ product.price }}</p>
+                    </div>
                 </div>
             {% endfor %}
         </div>
-    </div>
+    </section>
+</main>
 {% endblock %}

@@ -1,13 +1,219 @@
-/* shop/static/shop/css/style.css */
-body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
-header { background-color: #333; color: #fff; padding: 1em 0; text-align: center; }
-header h1 { margin: 0; }
-header h1 a { color: #fff; text-decoration: none; }
-nav ul { list-style: none; padding: 0; }
-nav ul li { display: inline; margin: 0 15px; }
-nav ul li a { color: #fff; text-decoration: none; }
-main { padding: 20px; max-width: 960px; margin: 20px auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.hero { text-align: center; padding: 50px 0; background-color: #e2e2e2; border-radius: 5px; margin-bottom: 20px; }
-.hero h1 { color: #007bff; }
-.button { display: inline-block; background-color: #007bff; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 15px; }
-footer { text-align: center; padding: 20px; margin-top: 20px; background-color: #333; color: #fff; }
+/* 1. Global and Base Styles */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4;
+  color: #333;
+  display: grid; /* Use Grid for the main page layout */
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+}
+
+a {
+  text-decoration: none;
+  color: #007bff;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 2. Header and Footer Layout */
+header, footer {
+  background-color: #333;
+  color: #fff;
+  padding: 1em 5%;
+}
+
+header {
+  grid-row: 1;
+}
+
+footer {
+  grid-row: 3;
+  text-align: center;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+nav h1 {
+  margin: 0;
+  font-size: 1.5em;
+}
+
+nav h1 a {
+  color: #fff;
+  text-decoration: none;
+}
+
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 20px;
+}
+
+nav ul li a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+/* 3. Product List Page Layout (Grid for Sidebar + Main) */
+.product-grid-container {
+  grid-row: 2; /* Position this in the middle row of the body grid */
+  display: grid;
+  grid-template-columns: 240px 1fr; /* Sidebar and main content columns */
+  gap: 20px;
+  max-width: 1200px;
+  margin: 20px auto;
+  width: 90%;
+}
+
+#sidebar {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#sidebar h3 {
+  margin-top: 0;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+
+#sidebar ul li a {
+  display: block;
+  padding: 8px 10px;
+}
+
+#sidebar ul li.selected a, #sidebar ul li a:hover {
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+#main-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 4. Product Cards Layout (Flexbox) */
+.product-list {
+  display: flex;
+  flex-wrap: wrap; /* Allow items to wrap to the next line */
+  gap: 20px; /* Space between cards */
+}
+
+.product-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+  flex-basis: 200px; /* Base width of the card */
+  flex-grow: 1; /* Allow cards to grow to fill space */
+  display: flex;
+  flex-direction: column;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.product-card img {
+  display: block;
+}
+
+.product-card .product-info {
+  padding: 15px;
+  flex-grow: 1; /* Ensure this div grows to push price down */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Pushes price to the bottom */
+}
+
+.product-card .product-info a {
+  font-weight: bold;
+  color: #333;
+}
+
+.product-card .product-info p {
+  margin: 10px 0 0;
+  font-weight: bold;
+  color: #007bff;
+}
+
+
+/* 5. Product Detail Page Layout (Flexbox) */
+.product-detail-container {
+  grid-row: 2; /* Position this in the middle row of the body grid */
+  display: flex;
+  flex-wrap: wrap; /* Wrap on smaller screens */
+  gap: 30px;
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.product-image-container {
+  flex: 1 1 400px; /* Flex properties for responsive sizing */
+}
+
+.product-details {
+  flex: 1 1 400px;
+}
+
+.product-details .price {
+  font-size: 1.8em;
+  font-weight: bold;
+  color: #e63946;
+  margin: 10px 0;
+}
+
+/* 6. Forms and Buttons */
+.add-to-cart-form {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.button {
+  display: inline-block;
+  background-color: #007bff;
+  color: #fff;
+  padding: 12px 24px;
+  text-decoration: none;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.2s;
+}
+
+.button:hover {
+  background-color: #0056b3;
+  color: #fff;
+  text-decoration: none;
+}

@@ -1,24 +1,25 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NovaKart | {% block title %}{% endblock %}</title>
-    {% load static %}
     <link rel="stylesheet" href="{% static 'shop/css/style.css' %}" />
   </head>
   <body>
     <header>
       <nav>
-        <h1>
-          <a href="{% url 'shop:product_list' %}">NovaKart</a>
-          <ul>
-            <li><a href="{% url 'shop:product_list' %}">Home</a></li>
+        <h1><a href="{% url 'shop:product_list' %}">NovaKart 🛒</a></h1>
+        <ul>
+          <li><a href="{% url 'shop:product_list' %}">Home</a></li>
           </ul>
-        </h1>
       </nav>
     </header>
-    <main>{% block content %}{% endblock %}</main>
+
+    {% block content %}
+    {% endblock %}
+    
     <footer>
       <p>© 2025 NovaKart</p>
     </footer>

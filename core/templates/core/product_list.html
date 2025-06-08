@@ -15,7 +15,7 @@
             </li>
             {% for node in nodes %}
                 <li {% if current_node.slug == node.slug %}class="selected"{% endif %}>
-                    <a href="#">{{ node.name }}</a> {# URL for categories needs to be added #}
+                    <a href="{% url 'core:product_list_by_category' category_slug=node.slug %}">{{ node.name }}</a>
                 </li>
             {% endfor %}
         </ul>
@@ -27,7 +27,7 @@
             {% for product in products %}
                 <div class="product-card">
                     <a href="{{ product.get_absolute_url }}">
-                        <img src="{% static 'images/no_image.png' %}" alt="{{ product.title }}"> {# Placeholder #}
+                        <img src="{% static 'images/no_image.jpg' %}" alt="{{ product.title }}"> {# Placeholder #}
                    </a>
                    <div class="product-info">
                       <a href="{{ product.get_absolute_url }}">{{ product.title }}</a>

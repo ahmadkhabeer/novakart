@@ -1,26 +1,73 @@
-{% extends "shop/base.html" %}
+{% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}
-    {{ product.name }}
-{% endblock %}
+{% block title %}{{ product.title }}{% endblock %}
 
 {% block content %}
-<main class="product-detail-container">
-    <div class="product-image-container">
-      <img src="{% if product.image %}{{ product.image.url }}{% else %}{% static 'shop/img/no_image.png' %}{% endif %}">
+<main class="product-detail-grid">
+    <div class="product-images">
+        <img src="{% static 'images/no_image.png' %}" alt="{{ product.title }}">
     </div>
-    <div class="product-details">
-        <h1>{{ product.name }}</h1>
-        <h2><a href="{{ product.category.get_absolute_url }}">{{ product.category }}</a></h2>
-        <p class="price">${{ product.price }}</p>
-        <form class="add-to-cart-form" action="#" method="post">
-            {% csrf_token %}
-            {{ cart_product_form }}
-            <button type="submit" class="button">Add to cart</button>
-        </form>
-        <h3>Description</h3>
-        <p>{{ product.description|linebreaks }}</p>
-    </div>
+
+    <div class="product-main-info">
+        <h1 class="product-title">{{ product.title }}</h1>
+        <p class="product-brand">Brand: {{ product.brand }}</p>
+        <hr>
+        
+        <div class="product-description">
+            <h3>About this item</h3>
+            <p>{{ product.description|linebreaks }}</p>
+        </div>
+        
+        </div>
+
+    <aside class="buy-box">
+        {% if main_offer %}
+            <h2 class="price">${{ main_offer.price }}</h2>
+            <p>Arrives soon. Order now.</p>
+            <p class="stock-status">
+                {% if main_offer.quantity > 0 %}
+                    In Stock.
+                {% else %}
+                    Out of Stock.
+                {% endif %}
+            </p>
+            
+            <form action="{% url 'carts:add_to_cart' %}" method="post"> {# NOTE: This URL assumes a cart app setup #}
+                {% csrf_token %}
+                <input type="hidden" name="offer_id" value="{{ main_offer.id }}">
+                <label for="quantity">Qty:</label>
+                <select name="quantity" id="quantity">
+                    {% for i in "12345"|make_list %}
+                    <option value="{{ i }}">{{ i }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="add-to-cart-btn">Add to Cart</button>
+            </form>
+            
+            <div class="seller-info">
+                <p>Ships from: NovaKart</p>
+                <p>Sold by: <a href="#">{{ main_offer.seller.name }}</a></p>
+            </div>
+            
+        {% else %}
+            <p class="unavailable">Currently unavailable.</p>
+        {% endif %}
+
+        <hr>
+        
+        {% if variants_with_offers|length > 1 %}
+            <h4>Other Sellers / Variants:</h4>
+            {% for vwo in variants_with_offers %}
+                {% if vwo.best_offer %}
+                <div class="other-offer">
+                    <p><strong>{{ vwo.variant }}</strong></p>
+                    <p>Price: ${{ vwo.best_offer.price }} by {{ vwo.best_offer.seller.name }}</p>
+                    <a href="#">View Offer</a>
+                </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </aside>
 </main>
 {% endblock %}

@@ -69,11 +69,94 @@ body {
 .product-card .price { font-weight: bold; color: #B12704; }
 .product-card .brand { color: #555; font-size: 0.9em; margin-bottom: 0.5rem; }
 
-/* 5. Responsive Design */
+/* 5. Product Detail Page Layout */
+.product-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    background-color: var(--light-color);
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.product-images {
+    grid-column: 1 / 2;
+}
+
+.product-images img {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+.product-main-info {
+    grid-column: 2 / 3;
+}
+
+.buy-box {
+    grid-column: 3 / 4;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.buy-box .price {
+    font-size: 1.75rem;
+    color: #B12704;
+}
+
+.buy-box .stock-status {
+    color: #007600;
+    font-weight: bold;
+}
+
+.add-to-cart-btn {
+    background-color: #FFD814;
+    border: 1px solid #FCD200;
+    color: var(--text-color);
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+.seller-info {
+    font-size: 0.9em;
+    color: #555;
+    margin-top: 1rem;
+}
+
+/* 6. Responsive Design */
+@media (max-width: 1024px) {
+    .product-detail-grid {
+        grid-template-columns: 1fr 1fr; /* Images and Info side-by-side, Buy Box below */
+    }
+    .product-main-info {
+        grid-column: 2 / 3;
+    }
+    .buy-box {
+        grid-column: 1 / 3; /* Span full width on new row */
+        grid-row: 2 / 3;
+    }
+}
+
 @media (max-width: 900px) {
   .main-grid {
     grid-template-columns: 1fr; /* Stack sidebar and content */
   }
+}
+
+@media (max-width: 768px) {
+    .product-detail-grid {
+        grid-template-columns: 1fr; /* Stack everything */
+    }
+    .product-images, .product-main-info, .buy-box {
+        grid-column: 1 / 2;
+    }
+    .buy-box {
+        grid-row: 3 / 4;
+    }
 }
 
 @media (max-width: 600px) {

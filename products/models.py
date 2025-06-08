@@ -1,94 +1,59 @@
 from django.db import models
 from django.urls import reverse
 
-class Category(models.Model):
-    """
-    Represents a product category in the e-commerce store.
-    Each category has a unique name and a URL-friendly slug.
-    """
-    name = models.CharField(max_length=255, db_index=True, unique=True,
-                            help_text='The name of the product category (e.g., "Electronics", "Books").')
-    slug = models.SlugField(max_length=255, unique=True,
-                            help_text='A URL-friendly unique identifier for the category (e.g., "electronics").')
-    description = models.TextField(blank=True, null=True,
-                                   help_text='A brief description of the category.')
-    created_at = models.DateTimeField(auto_now_add=True,
-                                      help_text='Timestamp when the category was created.')
+class BrowseNode(models.Model):
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
 
-    updated_at = models.DateTimeField(auto_now=True,
-                                      help_text='Timestamp when the category was last updated.')
+    class Meta:
+        verbose_name_plural = 'Browse Nodes'
 
-    class Meta():
-        """
-        Meta options for the Category model.
-        """
-        ordering = ('name',)
-        verbose_name = 'category'
-        verbose_name_plural = 'categories'
-    
-    def get_absolute_url(self):
-        """
-        Returns the URL to a specific category's product list.
-        This is a placeholder and assumes a URL pattern named 'shop:product_list_by_category'.
-        """
-        return reverse('shop:product_list_by_category', args=[self.slug])
-  
     def __str__(self):
-        """
-        String representation of the Category object.
-        """
         return self.name
 
 class Product(models.Model):
-    """
-    Represents a product available for sale in the e-commerce store.
-    Includes details like category, name, price, stock, and availability.
-    """
-    category = models.ForeignKey(Category, 
-                                 related_name='products',
-                                 on_delete=models.CASCADE,
-                                 help_text='The category the product belongs to.')
-    
-    name = models.CharField(max_length=255, db_index=True, unique=True,
-                            help_text='The name of the product.')
-    slug = models.SlugField(max_length=255, db_index=True, unique=True,
-                            help_text='A URL-friendly unique identifier for the product.')
-    description = models.TextField(blank=True, null=True,
-                            help_text='A detailed description of the product.')
-    price = models.DecimalField(max_digits=10, decimal_places=2,
-                            help_text='The selling price of the product (e.g., 99.99).')
-    image = models.ImageField(upload_to='products/%Y/%m/%d', blank=True, null=True,
-                            help_text="Path to the product's image file.")
-    stock = models.PositiveIntegerField(help_text='Current quantity of the product in stock.')
-    available = models.BooleanField(default=True,
-                            help_text='Indicates if the product is currently available for purchase.')
-    created_at = models.DateTimeField(auto_now_add=True,
-                            help_text='Timestamp when the product was added.')
-    updated_at = models.DateTimeField(auto_now=True,
-                            help_text='Timestamp when the product was last updated.')
+    parent_asin = models.CharField(max_length=10, unique=True, help_text="ASIN for the parent product.")
+    title = models.CharField(max_length=255)
+    brand = models.CharField(max_length=100, null=True, blank=True)
+    description = models.TextField()
+    browse_nodes = models.ManyToManyField(BrowseNode, related_name='products')
+    is_variation_parent = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta():
-        """
-        Meta options for the Product model.
-        """
-        ordering = ('name',)
-        verbose_name = 'product'
-        verbose_name_plural = 'products'
-        indexes = [
-            models.Index(fields=['id', 'slug']),
-            models.Index(fields=['name']),
-            models.Index(fields=['-created_at'])
-        ]
-        
     def get_absolute_url(self):
-        """
-        Returns the URL to a specific product's detail page.
-        This is a placeholder and assumes a URL pattern named 'shop:product_detail'.
-        """
-        return reverse('products:product_detail', args = [self.id, self.slug])
-    
+        return reverse('products:product_detail', kwargs={'parent_asin': self.parent_asin})
+
     def __str__(self):
-        """
-        String representation of the Product object.
-        """
+        return self.title
+
+class ProductVariant(models.Model):
+    child_asin = models.CharField(max_length=10, unique=True, help_text="ASIN for the specific variant.")
+    parent_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.parent_product.title} ({self.child_asin})"
+
+class Attribute(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    def __str__(self):
         return self.name
+
+class AttributeValue(models.Model):
+    attribute = models.ForeignKey(Attribute, on_delete=models.CASCADE, related_name='values')
+    value = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.attribute.name}: {self.value}"
+
+class VariantAttribute(models.Model):
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, related_name='attributes')
+    attribute_value = models.ForeignKey(AttributeValue, on_delete=models.CASCADE)
+    
+    class Meta:
+        unique_together = ('variant', 'attribute_value')
+
+    def __str__(self):
+        return f"{self.variant} -> {self.attribute_value}"

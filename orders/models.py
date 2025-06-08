@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from marketplace.models import Offer
 
 User = get_user_model()
 
@@ -9,10 +10,7 @@ class Order(models.Model):
     Includes customer information, shipping address, total amount, and order status.
     It links to the user who placed the order (if not a guest).
     """
-    user = models.ForeignKey(User, related_name='orders',
-                             on_delete=models.SET_NULL,
-                             blank=True, null=True,
-                             help_text="The user who placed the order. Nullable for guest checkouts.")
+    user = models.ForeignKey(User, related_name='orders', on_delete=models.SET_NULL, null=True, blank=True)
     first_name = models.CharField(max_length=100,
                                   help_text="First name of the person placing the order.")
     last_name = models.CharField(max_length=100,
@@ -77,17 +75,14 @@ class OrderItem(models.Model):
     linking an order to specific products and recording the price and quantity
     at the time of purchase.
     """
-    order = models.ForeignKey(Order, 
-                              related_name='items',
-                              on_delete=models.CASCADE,
-                              help_text="The order this item belongs to.")
+    order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     product = models.ForeignKey('products.Product', related_name='order_items',
                                 on_delete=models.CASCADE,
                                 help_text="The product included in this order item.")
-    price = models.DecimalField(max_digits=10, decimal_places=2,
-                                help_text="The price of the product at the time of purchase.")
-    quantity = models.PositiveIntegerField(help_text="The quantity of the product in this order item.")
-    
+    offer = models.ForeignKey(Offer, related_name='order_items', on_delete=models.PROTECT)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.PositiveIntegerField(default=1)
+
     class Meta:
         """
         Meta options for the OrderItem model.

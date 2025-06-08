@@ -1,0 +1,44 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if current_node %}{{ current_node.name }}{% else %}All Products{% endif %}
+{% endblock %}
+
+{% block content %}
+<main class="main-grid">
+    <aside class="sidebar">
+        <h3>Categories</h3>
+        <ul>
+            <li {% if not current_node %}class="selected"{% endif %}>
+                <a href="{% url 'core:product_list' %}">All</a>
+            </li>
+            {% for node in nodes %}
+                <li {% if current_node.slug == node.slug %}class="selected"{% endif %}>
+                    <a href="#">{{ node.name }}</a> {# URL for categories needs to be added #}
+                </li>
+            {% endfor %}
+        </ul>
+    </aside>
+
+    <section class="content-area">
+        <h1>{% if current_node %}{{ current_node.name }}{% else %}Products{% endif %}</h1>
+        <div class="product-grid">
+            {% for product in products %}
+                <div class="product-card">
+                    <a href="{{ product.get_absolute_url }}">
+                        <img src="{% static 'images/no_image.png' %}" alt="{{ product.title }}"> {# Placeholder #}
+                   </a>
+                   <div class="product-info">
+                      <a href="{{ product.get_absolute_url }}">{{ product.title }}</a>
+                      <p class="brand">{{ product.brand }}</p>
+                      <p class="price">$19.99</p> {# Price needs to be fetched from an Offer #}
+                    </div>
+                </div>
+            {% empty %}
+                <p>No products found in this category.</p>
+            {% endfor %}
+        </div>
+    </section>
+</main>
+{% endblock %}

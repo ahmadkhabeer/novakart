@@ -1,0 +1,16 @@
+{% extends 'users/base_account.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block account_content %}
+    <h2>{{ title }}</h2>
+    <hr>
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="form-group mt-4">
+            <button type="submit" class="btn btn-primary">Save Address</button>
+            <a href="{% url 'users:address_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+{% endblock %}

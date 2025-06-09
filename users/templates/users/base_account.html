@@ -1,0 +1,27 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="account-grid">
+    <aside class="account-sidebar">
+        <h3>My Account</h3>
+        <ul class="account-nav">
+            <li class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <a href="{% url 'users:dashboard' %}">Dashboard</a>
+            </li>
+            <li class="{% if request.resolver_match.url_name == 'profile_settings' %}active{% endif %}">
+                <a href="{% url 'users:profile_settings' %}">Profile Settings</a>
+            </li>
+            <li class="{% if request.resolver_match.url_name == 'address_list' %}active{% endif %}">
+                <a href="{% url 'users:address_list' %}">My Addresses</a>
+            </li>
+            <li><a href="#">My Orders</a></li>
+            <li><a href="{% url 'users:logout' %}">Logout</a></li>
+        </ul>
+    </aside>
+
+    <main class="account-content">
+        {% block account_content %}{% endblock %}
+    </main>
+</div>
+{% endblock %}

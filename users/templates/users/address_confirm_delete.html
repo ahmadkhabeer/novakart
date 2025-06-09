@@ -1,0 +1,20 @@
+{% extends 'users/base_account.html' %}
+
+{% block title %}Confirm Delete{% endblock %}
+
+{% block account_content %}
+    <h2>Are you sure?</h2>
+    <p>This will permanently delete the address:</p>
+    
+    <div class="alert alert-danger">
+        <strong>{{ address.full_name }}</strong><br>
+        {{ address.address_line_1 }}<br>
+        {{ address.city }}, {{ address.postal_code }}
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a href="{% url 'users:address_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+{% endblock %}

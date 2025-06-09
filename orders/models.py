@@ -1,28 +1,15 @@
 from django.db import models
 from django.conf import settings
-from marketplace.models import Offer
 from decimal import Decimal
 
-# NEW: A model to store a snapshot of the shipping address for an order.
-class ShippingAddress(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='shipping_addresses')
-    full_name = models.CharField(max_length=255)
-    address_line_1 = models.CharField("Address Line 1", max_length=255)
-    address_line_2 = models.CharField("Address Line 2", max_length=255, blank=True, null=True)
-    city = models.CharField(max_length=100)
-    state_province_region = models.CharField("State/Province/Region", max_length=100)
-    postal_code = models.CharField(max_length=20)
-    country = models.CharField(max_length=100)
-    phone_number = models.CharField(max_length=20, blank=True, null=True)
-
-    class Meta:
-        verbose_name = "Shipping Address"
-        verbose_name_plural = "Shipping Addresses"
-
-    def __str__(self):
-        return f"{self.full_name}, {self.address_line_1}, {self.city}"
+# CORRECTED: Import the models from their final locations.
+from marketplace.models import Offer
+from users.models import ShippingAddress
 
 class Order(models.Model):
+    """
+    Represents a completed customer order.
+    """
     class OrderStatus(models.TextChoices):
         PENDING = 'PENDING', 'Pending'
         PROCESSING = 'PROCESSING', 'Processing'
@@ -31,15 +18,18 @@ class Order(models.Model):
         CANCELLED = 'CANCELLED', 'Cancelled'
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
-    # MODIFIED: Link to a frozen address record instead of storing fields directly.
-    shipping_address = models.ForeignKey(ShippingAddress, related_name='orders', on_delete=models.PROTECT)
     
+    # CRITICAL CHANGE: This now links to the address record in the 'users' app.
+    # The on_delete=models.PROTECT rule prevents an address from being deleted
+    # if it's tied to a past order, preserving order history.
+    shipping_address = models.ForeignKey(ShippingAddress, related_name='orders', on_delete=models.PROTECT, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    paid = models.BooleanField(default=False)
-    status = models.CharField(max_length=20, choices=OrderStatus.choices, default=OrderStatus.PENDING)
     
+    status = models.CharField(max_length=20, choices=OrderStatus.choices, default=OrderStatus.PENDING)
     total_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    paid = models.BooleanField(default=False)
 
     class Meta:
         ordering = ('-created_at',)
@@ -49,16 +39,18 @@ class Order(models.Model):
     def __str__(self):
         return f'Order {self.id} by {self.user.username if self.user else "Guest"}'
 
-    # The calculation can still be a method, but the final value should be stored.
-    def calculate_total(self):
-        # Recalculates total based on its items.
-        total = sum(item.get_cost() for item in self.items.all())
-        self.total_paid = total
-        self.save()
 
 class OrderItem(models.Model):
+    """
+    Represents a single item within an Order.
+    """
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
+    
+    # This relationship is correct. It freezes the offer at the time of purchase.
     offer = models.ForeignKey(Offer, related_name='order_items', on_delete=models.PROTECT)
+    
+    # This is also correct. It freezes the price, so future price changes on the 
+    # offer do not affect the historical order record.
     price_at_purchase = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField(default=1)
 

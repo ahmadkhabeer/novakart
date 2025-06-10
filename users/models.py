@@ -1,20 +1,3 @@
-Of course. I have analyzed the two versions of users/models.py and the overall project structure.
-
-Your current users/models.py is completely empty, while the suggested version introduced a Profile model but kept the ShippingAddress model in the orders app.
-
-For better logical consistency and to truly build a robust user account system, the ShippingAddress model belongs in the users app. A user "owns" their addresses, and an Order simply "points to" one of those addresses when it's created.
-
-Here is the definitive, rewritten version of the users app, including the final models, views, and URLs.
-
-1. The Better and Final users/models.py
-This version is the most logical and scalable. It moves ShippingAddress into the users app and establishes a clear Profile model.
-
-Action: Replace the entire content of users/models.py with this code.
-
-Python
-
-# users/models.py
-
 from django.db import models
 from django.conf import settings
 from django.db.models.signals import post_save
@@ -71,3 +54,22 @@ class ShippingAddress(models.Model):
         if self.is_default:
             self.user.addresses.all().update(is_default=False)
         super().save(*args, **kwargs)
+
+class PaymentMethod(models.Model):
+    class CardType(models.TextChoices):
+        VISA = 'VISA', 'Visa'
+        MASTERCARD = 'MC', 'Mastercard'
+        AMEX = 'AMEX', 'American Express'
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payment_methods')
+    card_type = models.CharField(max_length=4, choices=CardType.choices)
+    cardholder_name = models.CharField(max_length=255)
+    last_four_digits = models.CharField(max_length=4)
+    expiry_month = models.PositiveSmallIntegerField()
+    expiry_year = models.PositiveSmallIntegerField()
+    is_default = models.BooleanField(default=False)
+    # In a real app, this would link to a token from a payment provider like Stripe or Braintree
+    # provider_token = models.CharField(max_length=255, unique=True)
+
+    def __str__(self):
+        return f"{self.get_card_type_display()} ending in {self.last_four_digits}"

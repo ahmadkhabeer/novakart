@@ -63,3 +63,25 @@ class OrderItem(models.Model):
 
     def get_cost(self):
         return self.price_at_purchase * self.quantity
+
+class Shipment(models.Model):
+    class ShipmentStatus(models.TextChoices):
+        PREPARING = 'PREPARING', 'Preparing for Shipment'
+        SHIPPED = 'SHIPPED', 'Shipped'
+        IN_TRANSIT = 'IN_TRANSIT', 'In Transit'
+        DELIVERED = 'DELIVERED', 'Delivered'
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='shipments')
+    # An order item can only be in one shipment
+    items = models.ManyToManyField(OrderItem, related_name='shipments')
+    seller = models.ForeignKey('marketplace.Seller', on_delete=models.PROTECT, related_name='shipments')
+    
+    status = models.CharField(max_length=20, choices=ShipmentStatus.choices, default=ShipmentStatus.PREPARING)
+    tracking_number = models.CharField(max_length=100, blank=True, null=True)
+    carrier = models.CharField(max_length=50, blank=True, null=True) # e.g., 'UPS', 'FedEx'
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    shipped_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Shipment for Order #{self.order.id} from {self.seller.name}"

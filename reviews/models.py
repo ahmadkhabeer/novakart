@@ -5,13 +5,16 @@ from products.models import Product
 class ProductReview(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews')
-    rating = models.PositiveSmallIntegerField() # 1-5
+    rating = models.PositiveSmallIntegerField()
     title = models.CharField(max_length=200)
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    helpful_votes = models.PositiveIntegerField(default=0)
+    verified_purchase = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Review for {self.product.title}"
+
 
 class ProductQuestion(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='questions')

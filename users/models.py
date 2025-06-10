@@ -8,14 +8,10 @@ class Profile(models.Model):
     Extends the default User model to store additional information.
     """
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    # Example future fields:
-    # phone_number = models.CharField(max_length=20, blank=True)
-    # profile_picture = models.ImageField(upload_to='users/pictures', blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
 
-# Signal to create a Profile automatically when a new User is created.
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -24,7 +20,6 @@ def create_user_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def save_user_profile(sender, instance, **kwargs):
     instance.profile.save()
-
 
 class ShippingAddress(models.Model):
     """
@@ -50,7 +45,6 @@ class ShippingAddress(models.Model):
         return f"{self.user.username} - {self.address_line_1}, {self.city}"
 
     def save(self, *args, **kwargs):
-        # Ensure only one address can be the default
         if self.is_default:
             self.user.addresses.all().update(is_default=False)
         super().save(*args, **kwargs)
@@ -68,8 +62,43 @@ class PaymentMethod(models.Model):
     expiry_month = models.PositiveSmallIntegerField()
     expiry_year = models.PositiveSmallIntegerField()
     is_default = models.BooleanField(default=False)
-    # In a real app, this would link to a token from a payment provider like Stripe or Braintree
-    # provider_token = models.CharField(max_length=255, unique=True)
 
     def __str__(self):
         return f"{self.get_card_type_display()} ending in {self.last_four_digits}"
+
+class WishList(models.Model):
+    """
+    A persistent, named list of products for a user.
+    """
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='wishlists')
+    name = models.CharField(max_length=100, default='My Wish List')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.user.username})"
+
+class WishListItem(models.Model):
+    """
+    An individual product within a user's Wish List.
+    """
+    wishlist = models.ForeignKey(WishList, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey('products.Product', on_delete=models.CASCADE, related_name='wishlist_items')
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('wishlist', 'product')
+
+    def __str__(self):
+        return f"{self.product.title} in {self.wishlist.name}"
+
+class BrowseHistory(models.Model):
+    """
+    Tracks products recently viewed by a user.
+    """
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='Browse_history')
+    product = models.ForeignKey('products.Product', on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name_plural = 'Browse History'

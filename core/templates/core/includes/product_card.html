@@ -1,0 +1,26 @@
+{% comment %} core/templates/core/includes/product_card.html {% endcomment %}
+{% load static %}
+
+<div class="product-card">
+    <a href="{{ product.get_absolute_url }}">
+        <img src="{% static 'images/no_image.png' %}" alt="{{ product.title }}">
+    </a>
+    <div class="product-info">
+        <a href="{{ product.get_absolute_url }}">{{ product.title }}</a>
+        <p class="brand">{{ product.brand }}</p>
+        
+        {% comment %} CORRECTED TO USE THE EFFICIENT ANNOTATION {% endcomment %}
+        {% if product.best_price %}
+            <p class="price">${{ product.best_price }}</p>
+        {% else %}
+            <p class="price">Unavailable</p>
+        {% endif %}
+    </div>
+</div>
+
+Sources
+
+
+
+
+

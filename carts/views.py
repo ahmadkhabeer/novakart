@@ -1,3 +1,14 @@
+Of course. Here are the full and complete contents of the three updated files, with no sections skipped or abbreviated.
+
+You can replace the entire content of each corresponding file in your project with the code provided below.
+
+1. carts/views.py (Full and Complete File)
+This file contains the critical bug fix for merging a guest's cart upon login, plus all the other necessary cart management views.
+
+Python
+
+# carts/views.py
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib import messages
@@ -8,22 +19,51 @@ from .models import Cart, CartItem
 
 def _get_cart(request):
     """
-    A private helper function to retrieve the current user's or guest's cart.
-    Creates a cart if one doesn't exist for the session or user.
+    A private helper function to retrieve the cart, handling guest-to-user cart merging.
     """
     if request.user.is_authenticated:
-        # For logged-in users, get or create their cart.
-        cart, created = Cart.objects.get_or_create(user=request.user)
-        # If the user also had a session cart, you might want to merge it here.
-        # This is a more complex feature for a later stage.
+        # Get the permanent cart associated with the user.
+        user_cart, created = Cart.objects.get_or_create(user=request.user)
+        
+        # Check if there was a cart in the session from when the user was a guest.
+        session_key = request.session.get('cart_session_key')
+        if session_key:
+            try:
+                guest_cart = Cart.objects.get(session_key=session_key, user=None)
+                # If a guest cart exists, merge its items into the user's cart.
+                for item in guest_cart.items.all():
+                    cart_item, item_created = CartItem.objects.get_or_create(
+                        cart=user_cart, 
+                        offer=item.offer,
+                        defaults={'quantity': item.quantity}
+                    )
+                    if not item_created:
+                        # If item already existed in the user's cart, add quantities.
+                        cart_item.quantity += item.quantity
+                        cart_item.save()
+                
+                # The guest cart has been merged, so it can be deleted.
+                guest_cart.delete()
+                # Clear the session key.
+                del request.session['cart_session_key']
+
+            except Cart.DoesNotExist:
+                # The session key was invalid or the cart was already handled.
+                pass
+        
+        return user_cart
+    
     else:
         # For guests, use the session key.
-        session_key = request.session.session_key
+        session_key = request.session.get('cart_session_key')
         if not session_key:
             request.session.create()
+            # We store the key in the session to remember it.
+            request.session['cart_session_key'] = request.session.session_key
             session_key = request.session.session_key
+            
         cart, created = Cart.objects.get_or_create(session_key=session_key, user=None)
-    return cart
+        return cart
 
 # --- Main Cart View ---
 
@@ -32,12 +72,8 @@ def view_cart(request):
     Displays the user's shopping cart with active and saved-for-later items.
     """
     cart = _get_cart(request)
-    
-    # Separate items into active and saved lists for easy rendering in the template.
     active_items = cart.items.filter(is_saved_for_later=False)
     saved_items = cart.items.filter(is_saved_for_later=True)
-    
-    # Calculate subtotal only for active items.
     subtotal = sum(item.get_total_price() for item in active_items)
     
     context = {
@@ -65,19 +101,16 @@ def add_to_cart(request):
 
     offer = get_object_or_404(Offer, id=offer_id)
     
-    # Get or create the cart item, ensuring it's not in the "saved for later" state.
     cart_item, created = CartItem.objects.get_or_create(
         cart=cart, 
         offer=offer, 
         defaults={'quantity': 0, 'is_saved_for_later': False}
     )
     
-    # If the item was previously saved for later, move it back to the active cart.
     if cart_item.is_saved_for_later:
         cart_item.is_saved_for_later = False
-        cart_item.quantity = 0 # Reset quantity when moving from saved list
+        cart_item.quantity = 0
 
-    # Check against available stock
     new_quantity = cart_item.quantity + quantity
     if new_quantity > offer.quantity:
         messages.warning(request, f"Only {offer.quantity} items are in stock. Your quantity has been adjusted.")
@@ -98,7 +131,6 @@ def update_cart_item(request, item_id):
     cart_item = get_object_or_404(CartItem, id=item_id)
     quantity = int(request.POST.get('quantity', 1))
 
-    # Ensure the user is updating an item in their own cart.
     if _get_cart(request) != cart_item.cart:
         messages.error(request, "You do not have permission to do that.")
         return redirect('carts:view_cart')
@@ -112,7 +144,6 @@ def update_cart_item(request, item_id):
             messages.success(request, "Cart updated.")
         cart_item.save()
     else:
-        # If quantity is 0 or less, remove the item.
         cart_item.delete()
         messages.success(request, "Item removed from cart.")
 
@@ -150,7 +181,6 @@ def save_for_later(request, item_id):
 @require_POST
 def move_to_cart(request, item_id):
     """
-
     Moves a 'Saved for Later' item back to the active cart.
     """
     cart_item = get_object_or_404(CartItem, id=item_id)

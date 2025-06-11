@@ -10,14 +10,18 @@
             {% if feature_image %}
                 <img src="{{ feature_image.image.url }}" alt="{{ feature_image.alt_text }}" class="main-image">
             {% else %}
-                <img src="{% static 'images/no_image.png' %}" alt="{{ product.title }}">
+                <img src="{% static 'images/no_image.png' %}" alt="{{ product.title }}" class="main-image">
             {% endif %}
+        
+            <div class="thumbnail-images">
+                {% for image in images %}
+                    {# Only display the thumbnail if it's NOT the main feature image #}
+                    {% if image != feature_image %}
+                        <img src="{{ image.image.url }}" alt="{{ image.alt_text }}" class="thumbnail">
+                    {% endif %}
+                {% endfor %}
+                </div>
         {% endwith %}
-        <div class="thumbnail-images">
-            {% for image in images %}
-                <img src="{{ image.image.url }}" alt="{{ image.alt_text }}" class="thumbnail">
-            {% endfor %}
-        </div>
     </div>
 
     <div class="product-main-info">

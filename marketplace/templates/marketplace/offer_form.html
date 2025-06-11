@@ -1,0 +1,39 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Add a Product Offer - Step 2{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Create Your Offer</h2>
+    <p class="lead">You are creating an offer for: <strong>{{ variant.parent_product.title }} ({{ variant.child_asin }})</strong></p>
+    <hr>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Offer Details</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">Submit Offer</button>
+                            <a href="{% url 'marketplace:offer_add' %}" class="btn btn-secondary">Go Back</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <p><strong>Tips for a great offer:</strong></p>
+            <ul>
+                <li>Price competitively.</li>
+                <li>Ensure you have the quantity in stock.</li>
+                <li>Accurately describe the condition.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

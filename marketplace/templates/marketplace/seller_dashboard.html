@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Seller Dashboard</h1>
         <div>
-            <a href="#" class="btn btn-primary">Add New Product Offer</a>
+            <a href="{% url 'marketplace:offer_add' %}" class="btn btn-primary">Add New Product Offer</a>
         </div>
     </div>
     
@@ -26,7 +26,7 @@
             <div class="card text-center">
                 <div class="card-body">
                     <h5 class="card-title">Sales (30 Days)</h5>
-                    <p class="card-text fs-2">$0.00</p> {# Placeholder #}
+                    <p class="card-text fs-2">$0.00</p> {# Placeholder for future sales logic #}
                 </div>
             </div>
         </div>
@@ -79,10 +79,16 @@
                     </table>
                 </div>
             {% else %}
-                <p>You have not listed any products for sale yet.</p>
+                <p>You have not listed any products for sale yet. Click "Add New Product Offer" to get started.</p>
             {% endif %}
         </div>
     </div>
 
 </div>
 {% endblock %}
+
+
+
+
+
+

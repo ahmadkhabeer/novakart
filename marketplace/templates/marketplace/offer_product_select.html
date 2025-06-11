@@ -1,0 +1,40 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Add a Product Offer - Step 1{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Add a Product to Your Inventory</h2>
+    <p class="lead">Search for a product in the NovaKart catalog to add your offer.</p>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get">
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control" placeholder="Search by product name, brand, or ASIN..." value="{{ query|default:'' }}">
+                    <button class="btn btn-primary" type="submit">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if query %}
+        <h3>Search Results</h3>
+        {% if variants %}
+            <div class="list-group">
+                {% for variant in variants %}
+                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">{{ variant.parent_product.title }}</h5>
+                        <p class="mb-1 text-muted">ASIN: {{ variant.child_asin }} | Brand: {{ variant.parent_product.brand }}</p>
+                    </div>
+                    <a href="{% url 'marketplace:offer_create' variant.id %}" class="btn btn-success">Sell This</a>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">No products found matching your search.</div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

@@ -8,29 +8,44 @@
     
     <hr>
     
+    {% if not is_seller %}
+    <div class="card bg-light text-dark mb-4">
+        <div class="card-body text-center">
+            <h4 class="card-title">Start Selling on NovaKart</h4>
+            <p class="card-text">Ready to reach new customers? Set up your store and start selling in minutes.</p>
+            <a href="{% url 'marketplace:seller_register' %}" class="btn btn-warning">Become a Seller</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-success">
+        You are a registered seller. <a href="#">Go to your Seller Dashboard.</a>
+    </div>
+    {% endif %}
     <div class="dashboard-section">
         <h3>Recent Orders</h3>
         {% if orders %}
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in orders %}
-                    <tr>
-                        <td>#{{ order.id }}</td>
-                        <td>{{ order.created_at|date:"F d, Y" }}</td>
-                        <td>{{ order.get_status_display }}</td>
-                        <td>${{ order.total_paid }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td><a href="{% url 'orders:order_detail' order.id %}">#{{ order.id }}</a></td>
+                            <td>{{ order.created_at|date:"F d, Y" }}</td>
+                            <td>{{ order.get_status_display }}</td>
+                            <td>${{ order.total_paid|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         {% else %}
             <p>You have not placed any orders yet.</p>
         {% endif %}
@@ -46,6 +61,7 @@
                 {{ default_address.city }}, {{ default_address.state_province_region }} {{ default_address.postal_code }}<br>
                 {{ default_address.country }}
             </p>
+            <a href="{% url 'users:address_list' %}">Manage Addresses</a>
         {% else %}
             <p>You have no default shipping address set.</p>
             <a href="{% url 'users:address_create' %}" class="btn btn-primary">Add Address</a>

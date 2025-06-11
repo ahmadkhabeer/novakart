@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Become a Seller{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="text-center">Become a Seller on NovaKart</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">Ready to reach millions of customers? Register your store below to start selling your products on our platform.</p>
+                    <hr>
+                    <form method="POST">
+                        {% csrf_token %}
+                        <fieldset class="form-group">
+                            {{ form.as_p }}
+                        </fieldset>
+                        <div class="form-group mt-4 text-center">
+                            <button class="btn btn-primary btn-lg" type="submit">Complete Registration</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-muted">
+                    <p class="mb-0">By registering, you agree to our terms and conditions for sellers.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -11,6 +11,7 @@ urlpatterns = [
     path('reviews/', include('reviews.urls', namespace='reviews')),
     path('account/', include('users.urls', namespace='users')),
     path('promotions/', include('promotions.urls', namespace='promotions')),
+    path('marketplace/', include('marketplace.urls', namespace='marketplace')),
     path('', include('core.urls', namespace='core')),
 ]
 

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your NovaKart Order Confirmation</title>
+</head>
+<body style="font-family: Arial, sans-serif;">
+    <h2>Thank You for Your Order!</h2>
+    <p>Hi {{ order.user.first_name|default:order.user.username }},</p>
+    <p>We've received your order and are getting it ready for shipment. Your order ID is <strong>#{{ order.id }}</strong>.</p>
+    
+    <h3>Order Summary</h3>
+    <ul>
+        {% for item in order.items.all %}
+            <li>{{ item.quantity }} x {{ item.offer.variant.parent_product.title }} - ${{ item.price_at_purchase }}</li>
+        {% endfor %}
+    </ul>
+    <p><strong>Total Paid: ${{ order.total_paid }}</strong></p>
+
+    <p>We'll notify you again once your order has shipped.</p>
+    <p>Thanks for shopping with NovaKart!</p>
+</body>
+</html>

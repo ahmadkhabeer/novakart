@@ -1,0 +1,16 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Order Successful{% endblock %}
+
+{% block content %}
+<div class="container mt-5 text-center">
+    <div class="alert alert-success">
+        <h4 class="alert-heading">Thank You!</h4>
+        <p>Your order has been placed successfully.</p>
+        <hr>
+        <p class="mb-0">Your Order ID is: <strong>#{{ order.id }}</strong></p>
+    </div>
+    <a href="{% url 'core:product_list' %}" class="btn btn-primary">Continue Shopping</a>
+    <a href="{% url 'users:dashboard' %}" class="btn btn-secondary">Go to My Dashboard</a>
+</div>
+{% endblock %}

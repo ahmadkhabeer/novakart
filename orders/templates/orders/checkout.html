@@ -1,0 +1,63 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Checkout</h2>
+    <hr>
+    <form action="{% url 'orders:place_order' %}" method="post">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-lg-7">
+                <div class="card mb-4">
+                    <div class="card-header"><h4>1. Shipping Address</h4></div>
+                    <div class="card-body">
+                        {{ shipping_form.as_p }}
+                        <a href="{% url 'users:address_create' %}?next={% url 'orders:checkout' %}" class="btn btn-sm btn-secondary">Add New Address</a>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header"><h4>2. Payment Method</h4></div>
+                    <div class="card-body">
+                        {{ payment_form.as_p }}
+                        <a href="#" class="btn btn-sm btn-secondary">Add New Payment Method</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card">
+                    <div class="card-header"><h4>3. Order Summary</h4></div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            {% for item in cart_items %}
+                            <li class="list-group-item d-flex justify-content-between lh-sm">
+                                <div>
+                                    <h6 class="my-0">{{ item.offer.variant.parent_product.title }}</h6>
+                                    <small class="text-muted">Qty: {{ item.quantity }}</small>
+                                </div>
+                                <span class="text-muted">${{ item.get_total_price|floatformat:2 }}</span>
+                            </li>
+                            {% endfor %}
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Subtotal</span>
+                                <strong>${{ subtotal|floatformat:2 }}</strong>
+                            </li>
+                        </ul>
+
+                        <div class="p-2">
+                            {{ promo_form.as_p }}
+                        </div>
+                    </div>
+                    <div class="card-footer d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Place Order</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Your Shopping Cart{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Your Shopping Cart</h2>
+    <hr>
+    
+    {% if not active_items and not saved_items %}
+        <div class="alert alert-info">Your cart is empty.</div>
+        <a href="{% url 'core:product_list' %}" class="btn btn-primary">Continue Shopping</a>
+    {% else %}
+        <div class="row">
+            <div class="col-lg-8">
+                <h4>Active Items</h4>
+                {% if active_items %}
+                    {% for item in active_items %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5><a href="{{ item.offer.variant.parent_product.get_absolute_url }}">{{ item.offer.variant.parent_product.title }}</a></h5>
+                            <p>Sold by: {{ item.offer.seller.name }}</p>
+                            <p class="font-weight-bold">${{ item.offer.price }}</p>
+                            
+                            <form action="{% url 'carts:update_cart_item' item.id %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                Qty: <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="99" style="width: 60px;">
+                                <button type="submit" class="btn btn-sm btn-info">Update</button>
+                            </form>
+                            
+                            <form action="{% url 'carts:remove_from_cart' item.id %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                            </form>
+
+                            <form action="{% url 'carts:save_for_later' item.id %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-secondary">Save for Later</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p>You have no active items in your cart.</p>
+                {% endif %}
+                
+                <hr class="my-4">
+
+                <h4>Saved for Later</h4>
+                {% if saved_items %}
+                    {% for item in saved_items %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5>{{ item.offer.variant.parent_product.title }}</h5>
+                            <p>Sold by: {{ item.offer.seller.name }}</p>
+                            
+                            <form action="{% url 'carts:move_to_cart' item.id %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-success">Move to Cart</button>
+                            </form>
+
+                            <form action="{% url 'carts:remove_from_cart' item.id %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p>You have no items saved for later.</p>
+                {% endif %}
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">Order Summary</h4>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Subtotal</span>
+                                <strong>${{ subtotal|floatformat:2 }}</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Shipping</span>
+                                <strong>FREE</strong>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between">
+                                <span>Total</span>
+                                <strong class="h5">${{ subtotal|floatformat:2 }}</strong>
+                            </li>
+                        </ul>
+                        
+                        {% if active_items %}
+                            <div class="d-grid mt-3">
+                                <a href="{% url 'orders:checkout' %}" class="btn btn-primary btn-lg">Proceed to Checkout</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

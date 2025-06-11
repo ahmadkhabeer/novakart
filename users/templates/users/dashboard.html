@@ -18,9 +18,10 @@
     </div>
     {% else %}
     <div class="alert alert-success">
-        You are a registered seller. <a href="#">Go to your Seller Dashboard.</a>
+        You are a registered seller. <a href="{% url 'marketplace:seller_dashboard' %}" class="alert-link">Go to your Seller Dashboard.</a>
     </div>
     {% endif %}
+
     <div class="dashboard-section">
         <h3>Recent Orders</h3>
         {% if orders %}

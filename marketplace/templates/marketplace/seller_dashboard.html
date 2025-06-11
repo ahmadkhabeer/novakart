@@ -1,0 +1,88 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Seller Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Seller Dashboard</h1>
+        <div>
+            <a href="#" class="btn btn-primary">Add New Product Offer</a>
+        </div>
+    </div>
+    
+    <p class="lead">Welcome back, {{ seller.name }}!</p>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Active Listings</h5>
+                    <p class="card-text fs-2">{{ offer_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Sales (30 Days)</h5>
+                    <p class="card-text fs-2">$0.00</p> {# Placeholder #}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Seller Rating</h5>
+                    <p class="card-text fs-2">{{ seller.rating|default:"N/A" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h4>Your Product Listings</h4>
+        </div>
+        <div class="card-body">
+            {% if offers %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for offer in offers %}
+                            <tr>
+                                <td>{{ offer.variant.parent_product.title }}</td>
+                                <td>${{ offer.price|floatformat:2 }}</td>
+                                <td>{{ offer.quantity }}</td>
+                                <td>
+                                    {% if offer.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="#" class="btn btn-sm btn-info">Edit</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p>You have not listed any products for sale yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

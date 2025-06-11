@@ -2,8 +2,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
 from django.contrib import messages
-from .models import Seller
+from .models import Seller, Offer
 from .forms import SellerRegisterForm
+from .decorators import seller_required
 
 @login_required
 def seller_register_view(request):
@@ -43,3 +44,24 @@ def seller_register_view(request):
         'form': form
     }
     return render(request, 'marketplace/seller_register.html', context)
+
+
+@login_required
+@seller_required # Use the decorator to protect this page
+def seller_dashboard_view(request):
+    """
+    Displays the main dashboard for a seller, showing their offers and stats.
+    """
+    seller = request.user.seller
+    # Get all offers by this seller and prefetch related product data for efficiency
+    offers = Offer.objects.filter(seller=seller).select_related(
+        'variant__parent_product'
+    )
+
+    context = {
+        'seller': seller,
+        'offers': offers,
+        'offer_count': offers.count(),
+        # You can add more stats here later (e.g., total sales)
+    }
+    return render(request, 'marketplace/seller_dashboard.html', context)

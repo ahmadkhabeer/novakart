@@ -5,4 +5,5 @@ app_name = 'marketplace'
 
 urlpatterns = [
     path('become-a-seller/', views.seller_register_view, name='seller_register'),
+    path('dashboard/', views.seller_dashboard_view, name='seller_dashboard'),
 ]

@@ -127,7 +127,23 @@ body {
     margin-top: 1rem;
 }
 
-/* 6. Responsive Design */
+/* 6. Button as a Link Styling */
+.nav-link-button {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--light-color); /* Matches other nav link colors */
+    text-decoration: none;
+    cursor: pointer;
+    font-size: inherit; /* Matches other nav link font sizes */
+    font-family: inherit;
+}
+
+.nav-link-button:hover {
+    text-decoration: underline;
+}
+
+/* 7. Responsive Design */
 @media (max-width: 1024px) {
     .product-detail-grid {
         grid-template-columns: 1fr 1fr; /* Images and Info side-by-side, Buy Box below */

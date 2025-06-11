@@ -22,8 +22,13 @@
                 <ul class="nav-links">
                     {% if user.is_authenticated %}
                         <li><a href="{% url 'users:dashboard' %}">My Account</a></li>
-                        <li><a href="{% url 'users:logout' %}">Logout</a></li>
-                    {% else %}
+                        <li>
+                            <form action="{% url 'users:logout' %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="nav-link-button">Logout</button>
+                            </form>
+                        </li>
+                        {% else %}
                         <li><a href="{% url 'users:login' %}">Login</a></li>
                         <li><a href="{% url 'users:register' %}">Register</a></li>
                     {% endif %}

@@ -1,0 +1,41 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Today's Deals{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="p-4 p-md-5 mb-4 rounded text-bg-dark">
+        <div class="col-md-6 px-0">
+            <h1 class="display-4 fst-italic">Today's Deals</h1>
+            <p class="lead my-3">Check out these limited-time offers from our sellers.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for deal in deals %}
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">{{ deal.offer.variant.parent_product.title }}</h5>
+                    <p class="card-text">
+                        A special offer from <strong>{{ deal.offer.seller.name }}</strong>.
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-danger fs-4 fw-bold">${{ deal.deal_price }}</span>
+                            <span class="text-muted text-decoration-line-through ms-2">${{ deal.offer.price }}</span>
+                        </div>
+                        <a href="{{ deal.offer.variant.parent_product.get_absolute_url }}" class="btn btn-primary">View Product</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col">
+            <div class="alert alert-info">There are no active deals right now. Check back soon!</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

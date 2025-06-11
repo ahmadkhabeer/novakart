@@ -9,6 +9,9 @@ from orders.models import Order
 from .forms import UserRegisterForm, ShippingAddressForm, UserUpdateForm, ProfileUpdateForm
 
 def register(request):
+    """
+    Handles new user registration.
+    """
     if request.user.is_authenticated:
         return redirect('core:product_list')
         
@@ -28,9 +31,7 @@ def dashboard(request):
     """
     Main user dashboard showing recent orders and default address.
     """
-    # PERFORMANCE OPTIMIZATION: Use select_related to fetch user data in the same query.
-    orders = Order.objects.filter(user=request.user).select_related('shipping_address').order_by('-created_at')[:5]
-    
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')[:5]
     default_address = ShippingAddress.objects.filter(user=request.user, is_default=True).first()
     context = {
         'orders': orders,
@@ -40,6 +41,9 @@ def dashboard(request):
 
 @login_required
 def profile_settings(request):
+    """
+    Allows user to update their account info (username, email) and profile details.
+    """
     if request.method == 'POST':
         user_form = UserUpdateForm(request.POST, instance=request.user)
         profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=request.user.profile)
@@ -58,13 +62,21 @@ def profile_settings(request):
     }
     return render(request, 'users/profile_settings.html', context)
 
+# --- Shipping Address Views ---
+
 @login_required
 def address_list(request):
+    """
+    Lists all shipping addresses for the current user.
+    """
     addresses = ShippingAddress.objects.filter(user=request.user)
     return render(request, 'users/address_list.html', {'addresses': addresses})
 
 @login_required
 def address_create(request):
+    """
+    Handles creation of a new shipping address.
+    """
     if request.method == 'POST':
         form = ShippingAddressForm(request.POST)
         if form.is_valid():
@@ -82,6 +94,9 @@ def address_create(request):
 
 @login_required
 def address_update(request, pk):
+    """
+    Handles updating an existing shipping address.
+    """
     address = get_object_or_404(ShippingAddress, pk=pk, user=request.user)
     if request.method == 'POST':
         form = ShippingAddressForm(request.POST, instance=address)
@@ -95,6 +110,9 @@ def address_update(request, pk):
 
 @login_required
 def address_delete(request, pk):
+    """
+    Handles deletion of a shipping address after confirmation.
+    """
     address = get_object_or_404(ShippingAddress, pk=pk, user=request.user)
     if request.method == 'POST':
         address.delete()
@@ -102,13 +120,21 @@ def address_delete(request, pk):
         return redirect('users:address_list')
     return render(request, 'users/address_confirm_delete.html', {'address': address})
 
+# --- Payment Method Views ---
+
 @login_required
 def payment_method_list(request):
+    """
+    Lists all saved payment methods for the current user.
+    """
     payment_methods = PaymentMethod.objects.filter(user=request.user)
     return render(request, 'users/payment_method_list.html', {'payment_methods': payment_methods})
 
 @login_required
 def payment_method_delete(request, pk):
+    """
+    Handles deletion of a saved payment method.
+    """
     payment_method = get_object_or_404(PaymentMethod, pk=pk, user=request.user)
     if payment_method.is_default:
         messages.error(request, "You cannot delete your default payment method.")
@@ -119,14 +145,23 @@ def payment_method_delete(request, pk):
 
 @login_required
 def payment_method_set_default(request, pk):
+    """
+    Sets a specific payment method as the default for the user.
+    """
     payment_method = get_object_or_404(PaymentMethod, pk=pk, user=request.user)
+    # The logic in the model's save() method handles unsetting other defaults.
     payment_method.is_default = True
     payment_method.save()
     messages.success(request, f"{payment_method} has been set as your default payment method.")
     return redirect('users:payment_method_list')
 
+
+# --- Django Auth Class-Based Views ---
+
 class UserLoginView(auth_views.LoginView):
     template_name = 'users/login.html'
 
+# This is the correct, secure implementation for the Logout View.
+# It inherits from Django's LogoutView and will require a POST request by default.
 class UserLogoutView(auth_views.LogoutView):
    pass

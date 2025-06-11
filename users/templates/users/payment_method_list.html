@@ -1,0 +1,39 @@
+{% extends 'users/base_account.html' %}
+
+{% block title %}Payment Methods{% endblock %}
+
+{% block account_content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>My Payment Methods</h2>
+        <a href="#" class="btn btn-primary">Add New Payment Method</a> {# This would link to your payment gateway form #}
+    </div>
+    
+    {% if payment_methods %}
+        <div class="list-group">
+            {% for pm in payment_methods %}
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>{{ pm.get_card_type_display }} ending in {{ pm.last_four_digits }}</strong>
+                    <small class="d-block text-muted">Expires: {{ pm.expiry_month }}/{{ pm.expiry_year }}</small>
+                </div>
+                <div>
+                    {% if pm.is_default %}
+                        <span class="badge bg-success">Default</span>
+                    {% else %}
+                    <form action="{% url 'users:payment_method_set_default' pm.pk %}" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-secondary">Set as Default</button>
+                    </form>
+                    {% endif %}
+                    <form action="{% url 'users:payment_method_delete' pm.pk %}" method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>You have no saved payment methods.</p>
+    {% endif %}
+{% endblock %}

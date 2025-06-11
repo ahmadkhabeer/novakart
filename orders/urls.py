@@ -6,5 +6,9 @@ app_name = 'orders'
 urlpatterns = [
     path('checkout/', views.checkout_view, name='checkout'),
     path('place-order/', views.place_order_view, name='place_order'),
-    path('success/<int:order_id>/', views.order_success_view, name='order_success')
+    path('success/<int:order_id>/', views.order_success_view, name='order_success'),
+    
+    # NEW POST-ORDER URLS
+    path('history/', views.order_history_view, name='order_history'),
+    path('history/<int:order_id>/', views.order_detail_view, name='order_detail'),
 ]

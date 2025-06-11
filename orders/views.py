@@ -24,6 +24,9 @@ def send_order_confirmation_email(order):
 
 @login_required
 def checkout_view(request):
+    """
+    Displays the checkout page with forms for shipping, payment, and promotions.
+    """
     cart = get_object_or_404(Cart, user=request.user)
     active_items = cart.items.filter(is_saved_for_later=False)
 
@@ -31,9 +34,10 @@ def checkout_view(request):
         messages.info(request, "Your cart is empty.")
         return redirect('carts:view_cart')
 
+    # Instantiate the forms, passing the current user to populate their data.
     shipping_form = ShippingAddressSelectForm(user=request.user)
     payment_form = PaymentMethodSelectForm(user=request.user)
-    promo_form = PromotionApplyForm()
+    promo_form = PromotionApplyForm() # This form doesn't need initial data.
 
     subtotal = sum(item.get_total_price() for item in active_items)
 
@@ -48,8 +52,11 @@ def checkout_view(request):
 
 
 @login_required
-@transaction.atomic
+@transaction.atomic # This ensures all database operations are completed or none are.
 def place_order_view(request):
+    """
+    Handles the submission of the checkout form and creates the final order.
+    """
     if request.method != 'POST':
         return redirect('orders:checkout')
 
@@ -60,11 +67,11 @@ def place_order_view(request):
         messages.error(request, "Cannot place an order with an empty cart.")
         return redirect('carts:view_cart')
 
+    # Bind POST data to the forms
     shipping_form = ShippingAddressSelectForm(request.POST, user=request.user)
     payment_form = PaymentMethodSelectForm(request.POST, user=request.user)
     promo_form = PromotionApplyForm(request.POST)
 
-    # --- UPDATED: FORM ERROR HANDLING ---
     if not all([shipping_form.is_valid(), payment_form.is_valid(), promo_form.is_valid()]):
         messages.error(request, "There was an error with your selections. Please review the fields below.")
         
@@ -80,17 +87,20 @@ def place_order_view(request):
         
     shipping_address = shipping_form.cleaned_data['shipping_address']
     payment_method = payment_form.cleaned_data['payment_method']
-    promo_code = promo_form.cleaned_data.get('promo_code')
+    promo_code = promo_form.cleaned_data.get('promo_code') # This is a Promotion object or None.
 
+    # 1. Calculate final total (including promotions)
     subtotal = sum(item.get_total_price() for item in active_items)
     final_total = subtotal
     
-    payment_successful = True # Placeholder for payment gateway call
+    # 2. Payment Gateway Logic (Placeholder)
+    payment_successful = True # Assume payment is always successful.
 
     if not payment_successful:
-        messages.error(request, "Payment failed. Please try again.")
+        messages.error(request, "Payment failed. Please try again or use a different payment method.")
         return redirect('orders:checkout')
 
+    # 3. Create the Order and related objects
     order = Order.objects.create(
         user=request.user,
         shipping_address=shipping_address,
@@ -108,6 +118,7 @@ def place_order_view(request):
             price_at_purchase=item.offer.price,
             quantity=item.quantity
         )
+        # Reduce stock quantity for the offer
         item.offer.quantity -= item.quantity
         item.offer.save()
         
@@ -116,13 +127,15 @@ def place_order_view(request):
             items_by_seller[seller] = []
         items_by_seller[seller].append(order_item)
 
+    # Create a separate Shipment for each seller in the order
     for seller, items in items_by_seller.items():
         shipment = Shipment.objects.create(order=order, seller=seller)
         shipment.items.set(items)
 
+    # 4. Clean up
     active_items.delete()
     
-    # Send the confirmation email
+    # 5. Send confirmation email
     send_order_confirmation_email(order)
 
     messages.success(request, f"Thank you! Your order #{order.id} has been placed.")
@@ -131,5 +144,36 @@ def place_order_view(request):
 
 @login_required
 def order_success_view(request, order_id):
+    """
+    Displays a simple success page after an order is placed.
+    """
     order = get_object_or_404(Order, id=order_id, user=request.user)
     return render(request, 'orders/order_success.html', {'order': order})
+
+
+@login_required
+def order_history_view(request):
+    """
+    Displays a list of all past orders for the logged-in user.
+    """
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    context = {'orders': orders}
+    return render(request, 'orders/order_history.html', context)
+
+
+@login_required
+def order_detail_view(request, order_id):
+    """
+    Displays the detailed information for a single order, including its shipments.
+    """
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    # Prefetch related items for performance
+    order_items = order.items.prefetch_related('offer__variant__parent_product').all()
+    shipments = order.shipments.prefetch_related('items__offer__variant__parent_product').all()
+    
+    context = {
+        'order': order,
+        'order_items': order_items,
+        'shipments': shipments,
+    }
+    return render(request, 'orders/order_detail.html', context)

@@ -1,0 +1,34 @@
+{% extends 'users/base_account.html' %}
+
+{% block title %}Order #{{ order.id }}{% endblock %}
+
+{% block account_content %}
+    <h2>Order Details</h2>
+    <p><strong>Order ID:</strong> #{{ order.id }}</p>
+    <p><strong>Placed on:</strong> {{ order.created_at|date:"F d, Y" }}</p>
+    <p><strong>Order Total:</strong> ${{ order.total_paid|floatformat:2 }}</p>
+    <hr>
+
+    <h4>Shipments</h4>
+    {% for shipment in shipments %}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between">
+                <span>Shipment from {{ shipment.seller.name }}</span>
+                <strong>Status: {{ shipment.get_status_display }}</strong>
+            </div>
+            <div class="card-body">
+                {% if shipment.tracking_number %}
+                    <p><strong>Tracking:</strong> {{ shipment.carrier }} - {{ shipment.tracking_number }}</p>
+                {% endif %}
+                <h6>Items in this shipment:</h6>
+                <ul>
+                    {% for item in shipment.items.all %}
+                        <li>{{ item.quantity }} x {{ item.offer.variant.parent_product.title }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% empty %}
+        <p>Shipment details are being prepared.</p>
+    {% endfor %}
+{% endblock %}

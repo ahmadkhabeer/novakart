@@ -1,0 +1,38 @@
+{% extends 'users/base_account.html' %}
+
+{% block title %}Order History{% endblock %}
+
+{% block account_content %}
+    <h2>Order History</h2>
+    <p>View the details of your past orders.</p>
+    <hr>
+    
+    {% if orders %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>#{{ order.id }}</td>
+                        <td>{{ order.created_at|date:"F d, Y" }}</td>
+                        <td>${{ order.total_paid|floatformat:2 }}</td>
+                        <td><span class="badge bg-info">{{ order.get_status_display }}</span></td>
+                        <td><a href="{% url 'orders:order_detail' order.id %}" class="btn btn-sm btn-primary">View Details</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>You have not placed any orders yet.</p>
+    {% endif %}
+{% endblock %}

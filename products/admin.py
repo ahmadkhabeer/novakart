@@ -1,5 +1,10 @@
 from django.contrib import admin
-from .models import BrowseNode, Product, ProductVariant, Attribute, AttributeValue, VariantAttribute
+from .models import BrowseNode, Product, ProductVariant, Attribute, AttributeValue, VariantAttribute, ProductImage
+
+# Define an inline for Product Images
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    extra = 1  # Show one extra blank form
 
 @admin.register(BrowseNode)
 class BrowseNodeAdmin(admin.ModelAdmin):
@@ -13,13 +18,14 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ('title', 'parent_asin', 'brand', 'is_variation_parent', 'created_at')
     search_fields = ('title', 'parent_asin', 'brand', 'description')
     list_filter = ('is_variation_parent', 'brand', 'created_at')
-    filter_horizontal = ('browse_nodes',) # Better for ManyToMany fields
+    filter_horizontal = ('browse_nodes',)
+    inlines = [ProductImageInline] # Add the image inline here
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
     list_display = ('child_asin', 'parent_product', 'created_at')
     search_fields = ('child_asin', 'parent_product__title')
-    list_select_related = ('parent_product',) # Optimizes query
+    list_select_related = ('parent_product',)
     autocomplete_fields = ('parent_product',)
 
 @admin.register(Attribute)

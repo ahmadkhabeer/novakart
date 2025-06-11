@@ -4,70 +4,81 @@
 {% block title %}{{ product.title }}{% endblock %}
 
 {% block content %}
-<main class="product-detail-grid">
+<div class="product-detail-grid">
     <div class="product-images">
-        <img src="{% static 'images/no_image.png' %}" alt="{{ product.title }}">
+        {% with feature_image=product.get_feature_image %}
+            {% if feature_image %}
+                <img src="{{ feature_image.image.url }}" alt="{{ feature_image.alt_text }}" class="main-image">
+            {% else %}
+                <img src="{% static 'images/no_image.png' %}" alt="{{ product.title }}">
+            {% endif %}
+        {% endwith %}
+        <div class="thumbnail-images">
+            {% for image in images %}
+                <img src="{{ image.image.url }}" alt="{{ image.alt_text }}" class="thumbnail">
+            {% endfor %}
+        </div>
     </div>
 
     <div class="product-main-info">
         <h1 class="product-title">{{ product.title }}</h1>
-        <p class="product-brand">Brand: {{ product.brand }}</p>
+        <p class="product-brand">Brand: <a href="#">{{ product.brand }}</a></p>
         <hr>
         
         <div class="product-description">
             <h3>About this item</h3>
             <p>{{ product.description|linebreaks }}</p>
         </div>
-        
-        </div>
+    </div>
 
     <aside class="buy-box">
         {% if main_offer %}
             <h2 class="price">${{ main_offer.price }}</h2>
-            <p>Arrives soon. Order now.</p>
+            <p>Arrives soon. Order today.</p>
             <p class="stock-status">
-                {% if main_offer.quantity > 0 %}
-                    In Stock.
-                {% else %}
-                    Out of Stock.
-                {% endif %}
+                {% if main_offer.quantity > 0 %} In Stock. {% else %} Out of Stock. {% endif %}
             </p>
-            
-            <form action="{% url 'carts:add_to_cart' %}" method="post"> {# NOTE: This URL assumes a cart app setup #}
+            <form action="{% url 'carts:add_to_cart' %}" method="post">
                 {% csrf_token %}
                 <input type="hidden" name="offer_id" value="{{ main_offer.id }}">
-                <label for="quantity">Qty:</label>
-                <select name="quantity" id="quantity">
-                    {% for i in "12345"|make_list %}
-                    <option value="{{ i }}">{{ i }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit" class="add-to-cart-btn">Add to Cart</button>
-            </form>
-            
-            <div class="seller-info">
-                <p>Ships from: NovaKart</p>
-                <p>Sold by: <a href="#">{{ main_offer.seller.name }}</a></p>
-            </div>
-            
-        {% else %}
-            <p class="unavailable">Currently unavailable.</p>
-        {% endif %}
-
-        <hr>
-        
-        {% if variants_with_offers|length > 1 %}
-            <h4>Other Sellers / Variants:</h4>
-            {% for vwo in variants_with_offers %}
-                {% if vwo.best_offer %}
-                <div class="other-offer">
-                    <p><strong>{{ vwo.variant }}</strong></p>
-                    <p>Price: ${{ vwo.best_offer.price }} by {{ vwo.best_offer.seller.name }}</p>
-                    <a href="#">View Offer</a>
+                <div class="quantity-selector mb-3">
+                    <label for="quantity">Qty:</label>
+                    <select name="quantity" id="quantity" class="form-select-sm">
+                        {% for i in "12345"|make_list %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+                    </select>
                 </div>
-                {% endif %}
-            {% endfor %}
+                <button type="submit" class="btn btn-warning w-100 mb-2">Add to Cart</button>
+            </form>
+            <div class="seller-info">
+                <p><small>Ships from: NovaKart</small></p>
+                <p><small>Sold by: <a href="#">{{ main_offer.seller.name }}</a></small></p>
+            </div>
+        {% else %}
+            <p class="unavailable"><strong>Currently unavailable.</strong></p>
         {% endif %}
     </aside>
-</main>
+</div>
+
+<div class="reviews-section mt-5">
+    <hr>
+    <h3>Customer Reviews</h3>
+    {% if can_review %}
+        <a href="{% url 'reviews:add_review' product.id %}" class="btn btn-primary mb-3">Write a review</a>
+    {% endif %}
+    
+    {% for review in reviews %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">{{ review.title }}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">
+                    Rating: {{ review.rating }}/5 by {{ review.customer.username }}
+                    {% if review.verified_purchase %}<span class="badge bg-success ms-2">Verified Purchase</span>{% endif %}
+                </h6>
+                <p class="card-text">{{ review.text|linebreaks }}</p>
+            </div>
+        </div>
+    {% empty %}
+        <p>No reviews yet. Be the first to write one!</p>
+    {% endfor %}
+</div>
 {% endblock %}

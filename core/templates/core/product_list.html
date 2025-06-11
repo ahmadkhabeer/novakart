@@ -15,28 +15,30 @@
             </li>
             {% for node in nodes %}
                 <li {% if current_node.slug == node.slug %}class="selected"{% endif %}>
-                    <a href="{% url 'core:product_list_by_category' category_slug=node.slug %}">{{ node.name }}</a>
+                    <a href="{% url 'core:product_list_by_category' node.slug %}">{{ node.name }}</a>
                 </li>
             {% endfor %}
         </ul>
     </aside>
 
     <section class="content-area">
-        <h1>{% if current_node %}{{ current_node.name }}{% else %}Products{% endif %}</h1>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>{% if current_node %}{{ current_node.name }}{% else %}Products{% endif %}</h1>
+            <form method="get" class="d-flex align-items-center">
+                <input type="hidden" name="q" value="{{ request.GET.q|default:'' }}">
+                {{ filter_form.sort_by.label_tag }}
+                <div class="ms-2">
+                    {{ filter_form.sort_by }}
+                </div>
+                <button type="submit" class="btn btn-sm btn-secondary ms-2">Sort</button>
+            </form>
+        </div>
+        
         <div class="product-grid">
             {% for product in products %}
-                <div class="product-card">
-                    <a href="{{ product.get_absolute_url }}">
-                        <img src="{% static 'images/no_image.jpg' %}" alt="{{ product.title }}"> {# Placeholder #}
-                   </a>
-                   <div class="product-info">
-                      <a href="{{ product.get_absolute_url }}">{{ product.title }}</a>
-                      <p class="brand">{{ product.brand }}</p>
-                      <p class="price">$19.99</p> {# Price needs to be fetched from an Offer #}
-                    </div>
-                </div>
+                {% include 'core/includes/product_card.html' %}
             {% empty %}
-                <p>No products found in this category.</p>
+                <div class="alert alert-info">No products found matching your criteria.</div>
             {% endfor %}
         </div>
     </section>

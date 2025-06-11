@@ -1,31 +1,44 @@
 from django.shortcuts import render, get_object_or_404
 from .models import Product
-from marketplace.models import Offer
+from reviews.models import ProductReview
+from orders.models import OrderItem
 
 def product_detail(request, parent_asin):
     """
-    Displays the details for a parent product, including its variants and the best offers for each.
+    Displays the details for a parent product, its variants, offers, images, and reviews.
     """
-    parent_product = get_object_or_404(Product, parent_asin=parent_asin, is_variation_parent=True)
-    variants = parent_product.variants.all()
+    product = get_object_or_404(Product, parent_asin=parent_asin, is_variation_parent=True)
     
-    # For a true Amazon-like experience, you'd have a complex algorithm to select the "Buy Box" winner.
-    # For now, we'll find the best (lowest priced) active offer for each variant.
-    
-    variants_with_offers = []
-    for variant in variants:
-        best_offer = Offer.objects.filter(variant=variant, is_active=True).order_by('price').first()
-        variants_with_offers.append({
-            'variant': variant,
-            'best_offer': best_offer
-        })
+    # Fetch all related data efficiently
+    variants = product.variants.prefetch_related(
+        'offers__seller',
+        'attributes__attribute_value__attribute'
+    ).all()
+    images = product.images.all()
+    reviews = product.reviews.select_related('customer').order_by('-created_at')
 
-    # The "main offer" for the page could be the best offer from the first variant, or another logic.
-    main_offer = variants_with_offers[0]['best_offer'] if variants_with_offers else None
+    # Check if the current user is eligible to write a review
+    can_review = False
+    if request.user.is_authenticated:
+        has_purchased = OrderItem.objects.filter(
+            order__user=request.user,
+            offer__variant__parent_product=product
+        ).exists()
+        already_reviewed = reviews.filter(customer=request.user).exists()
+        if has_purchased and not already_reviewed:
+            can_review = True
+    
+    # Find the best offer to display in the "buy box"
+    main_offer = None
+    if variants and variants.first().offers.exists():
+        main_offer = variants.first().offers.order_by('price').first()
 
     context = {
-        'product': parent_product,
-        'variants_with_offers': variants_with_offers,
+        'product': product,
+        'variants': variants,
         'main_offer': main_offer,
+        'images': images,
+        'reviews': reviews,
+        'can_review': can_review,
     }
     return render(request, 'products/product_detail.html', context)

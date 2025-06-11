@@ -28,12 +28,10 @@ def checkout_view(request):
         messages.info(request, "Your cart is empty.")
         return redirect('carts:view_cart')
 
-    # Handle promo code application if the form is submitted
     if request.method == 'POST':
         promo_form = PromotionApplyForm(request.POST)
         if promo_form.is_valid():
             promo = promo_form.cleaned_data['promo_code']
-            # Store the valid promo code ID in the session
             request.session['promo_id'] = promo.id
             messages.success(request, f"Promotion '{promo.name}' applied.")
             return redirect('orders:checkout')
@@ -43,34 +41,16 @@ def checkout_view(request):
     shipping_form = ShippingAddressSelectForm(user=request.user)
     payment_form = PaymentMethodSelectForm(user=request.user)
 
-    subtotal = sum(item.get_total_price() for item in active_items)
-    discount = Decimal('0.00')
+    # REFACTORED: Use the new method from the Cart model
     promo_id = request.session.get('promo_id')
-
-    if promo_id:
-        try:
-            promo = Promotion.objects.get(id=promo_id)
-            if promo.is_valid():
-                if promo.discount_type == Promotion.DiscountType.PERCENTAGE:
-                    discount = (subtotal * (promo.value / 100)).quantize(Decimal('0.01'))
-                else: # Fixed amount
-                    discount = promo.value
-            else:
-                # Clear invalid promo from session
-                del request.session['promo_id']
-        except Promotion.DoesNotExist:
-            del request.session['promo_id']
-
-    final_total = subtotal - discount
+    totals = cart.get_totals(promo_id=promo_id)
 
     context = {
         'cart_items': active_items,
-        'subtotal': subtotal,
-        'discount': discount,
-        'final_total': final_total,
         'shipping_form': shipping_form,
         'payment_form': payment_form,
         'promo_form': promo_form,
+        **totals  # Unpack the totals dictionary into the context
     }
     return render(request, 'orders/checkout.html', context)
 
@@ -82,11 +62,17 @@ def place_order_view(request):
         return redirect('orders:checkout')
 
     cart = get_object_or_404(Cart, user=request.user)
-    active_items = cart.items.filter(is_saved_for_later=False)
+    active_items = cart.items.filter(is_saved_for_later=False).select_related('offer')
 
     if not active_items.exists():
         messages.error(request, "Cannot place an order with an empty cart.")
         return redirect('carts:view_cart')
+
+    # CRITICAL STOCK VALIDATION
+    for item in active_items:
+        if item.quantity > item.offer.quantity:
+            messages.error(request, f"Sorry, the quantity for '{item.offer.variant.parent_product.title}' has changed. Only {item.offer.quantity} are left in stock. Please update your cart.")
+            return redirect('carts:view_cart')
 
     shipping_form = ShippingAddressSelectForm(request.POST, user=request.user)
     payment_form = PaymentMethodSelectForm(request.POST, user=request.user)
@@ -97,23 +83,19 @@ def place_order_view(request):
         
     shipping_address = shipping_form.cleaned_data['shipping_address']
     
-    # Recalculate total and discount to ensure integrity
-    subtotal = sum(item.get_total_price() for item in active_items)
-    discount = Decimal('0.00')
+    # REFACTORED: Recalculate totals using the cart method to ensure integrity
     promo_id = request.session.get('promo_id')
+    totals = cart.get_totals(promo_id=promo_id)
+    final_total = totals['final_total']
+    
     promo_code = None
     if promo_id:
         try:
             promo_code = Promotion.objects.get(id=promo_id)
-            if promo_code.is_valid():
-                if promo_code.discount_type == Promotion.DiscountType.PERCENTAGE:
-                    discount = (subtotal * (promo_code.value / 100)).quantize(Decimal('0.01'))
-                else:
-                    discount = promo_code.value
+            if not promo_code.is_valid():
+                promo_code = None
         except Promotion.DoesNotExist:
             promo_code = None
-
-    final_total = subtotal - discount
 
     payment_successful = True # Placeholder for payment gateway call
 
@@ -168,7 +150,6 @@ def order_success_view(request, order_id):
 
 @login_required
 def order_history_view(request):
-    # PERFORMANCE OPTIMIZATION: Use select_related to also fetch shipping address in one query
     orders = Order.objects.filter(user=request.user).select_related('shipping_address').order_by('-created_at')
     context = {'orders': orders}
     return render(request, 'orders/order_history.html', context)
@@ -177,7 +158,6 @@ def order_history_view(request):
 @login_required
 def order_detail_view(request, order_id):
     order = get_object_or_404(Order, id=order_id, user=request.user)
-    # PERFORMANCE OPTIMIZATION: Prefetch all related data needed for the template in efficient queries
     shipments = order.shipments.prefetch_related('items__offer__variant__parent_product', 'seller').all()
     
     context = {

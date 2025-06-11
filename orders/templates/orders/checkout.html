@@ -13,22 +13,18 @@
         {% endfor %}
     {% endif %}
 
-    <form action="{% url 'orders:place_order' %}" method="post">
-        {% csrf_token %}
-        <div class="row">
-            <div class="col-lg-7">
+    <div class="row">
+        <div class="col-lg-7">
+            <form action="{% url 'orders:place_order' %}" method="post">
+                {% csrf_token %}
                 <div class="card mb-4">
                     <div class="card-header"><h4>1. Shipping Address</h4></div>
                     <div class="card-body">
-                        {% for error in shipping_form.non_field_errors %}
-                            <div class="alert alert-danger">{{ error }}</div>
-                        {% endfor %}
-                        
                         {% for radio in shipping_form.shipping_address %}
                         <div class="form-check">
                             {{ radio.tag }}
                             <label class="form-check-label" for="{{ radio.id_for_label }}">
-                                {{ radio.choice_label.full_name }}, {{ radio.choice_label.address_line_1 }}, {{ radio.choice_label.city }}
+                                {{ radio.choice_label.full_name }}, {{ radio.choice_label.address_line_1 }}
                             </label>
                         </div>
                         {% endfor %}
@@ -39,10 +35,6 @@
                 <div class="card mb-4">
                     <div class="card-header"><h4>2. Payment Method</h4></div>
                     <div class="card-body">
-                        {% for error in payment_form.non_field_errors %}
-                            <div class="alert alert-danger">{{ error }}</div>
-                        {% endfor %}
-                        
                         {% for radio in payment_form.payment_method %}
                         <div class="form-check">
                             {{ radio.tag }}
@@ -54,41 +46,62 @@
                         <a href="#" class="btn btn-sm btn-secondary mt-2">Add New Payment Method</a>
                     </div>
                 </div>
-            </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">Place Your Order</button>
+                </div>
+            </form>
+        </div>
 
-            <div class="col-lg-5">
-                <div class="card">
-                    <div class="card-header"><h4>3. Order Summary</h4></div>
-                    <div class="card-body">
-                        <ul class="list-group list-group-flush">
-                            {% for item in cart_items %}
-                            <li class="list-group-item d-flex justify-content-between lh-sm">
-                                <div>
-                                    <h6 class="my-0">{{ item.offer.variant.parent_product.title }}</h6>
-                                    <small class="text-muted">Qty: {{ item.quantity }}</small>
-                                </div>
-                                <span class="text-muted">${{ item.get_total_price|floatformat:2 }}</span>
-                            </li>
-                            {% endfor %}
-                            <li class="list-group-item d-flex justify-content-between">
-                                <span>Subtotal</span>
-                                <strong>${{ subtotal|floatformat:2 }}</strong>
-                            </li>
-                        </ul>
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header"><h4>Order Summary</h4></div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for item in cart_items %}
+                        <li class="list-group-item d-flex justify-content-between lh-sm">
+                            <div>
+                                <h6 class="my-0">{{ item.offer.variant.parent_product.title }}</h6>
+                                <small class="text-muted">Qty: {{ item.quantity }}</small>
+                            </div>
+                            <span class="text-muted">${{ item.get_total_price|floatformat:2 }}</span>
+                        </li>
+                        {% endfor %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Subtotal</span>
+                            <strong>${{ subtotal|floatformat:2 }}</strong>
+                        </li>
+                        {% if discount > 0 %}
+                        <li class="list-group-item d-flex justify-content-between bg-light">
+                            <div class="text-success">
+                                <h6 class="my-0">Promo discount</h6>
+                            </div>
+                            <span class="text-success">−${{ discount|floatformat:2 }}</span>
+                        </li>
+                        {% endif %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <h4><span>Total</span></h4>
+                            <h4><strong>${{ final_total|floatformat:2 }}</strong></h4>
+                        </li>
+                    </ul>
 
-                        <div class="p-2">
-                            {% for error in promo_form.promo_code.errors %}
-                                <div class="alert alert-danger p-1">{{ error }}</div>
-                            {% endfor %}
+                    <form action="{% url 'orders:checkout' %}" method="post" class="p-2">
+                        {% csrf_token %}
+                        <div class="input-group">
                             {{ promo_form.promo_code }}
+                            <button type="submit" class="btn btn-secondary">Apply</button>
                         </div>
-                    </div>
-                    <div class="card-footer d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">Place Order</button>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
-    </form>
+    </div>
 </div>
 {% endblock %}
+
+Sources
+
+
+
+
+
+

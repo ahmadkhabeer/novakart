@@ -1,0 +1,51 @@
+{% extends 'users/base_account.html' %}
+
+{% block title %}My Wish List{% endblock %}
+
+{% block account_content %}
+    <h2>My Wish List</h2>
+    <p>Products you've saved for later.</p>
+    <hr>
+    
+    {% if wishlist.items.all %}
+        <div class="wishlist-items">
+            {% for item in wishlist.items.all %}
+            <div class="card mb-3">
+                <div class="row g-0">
+                    <div class="col-md-2">
+                        {% with image=item.product.get_feature_image %}
+                            <a href="{{ item.product.get_absolute_url }}">
+                            {% if image %}
+                                <img src="{{ image.image.url }}" class="img-fluid rounded-start" alt="{{ item.product.title }}">
+                            {% else %}
+                                <img src="{% static 'images/no_image.png' %}" class="img-fluid rounded-start" alt="{{ item.product.title }}">
+                            {% endif %}
+                            </a>
+                        {% endwith %}
+                    </div>
+                    <div class="col-md-10">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5 class="card-title"><a href="{{ item.product.get_absolute_url }}">{{ item.product.title }}</a></h5>
+                                    <p class="card-text"><small class="text-muted">Added on {{ item.added_at|date:"F d, Y" }}</small></p>
+                                </div>
+                                <div>
+                                    <form action="{% url 'users:remove_from_wishlist' item.id %}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">Your Wish List is empty.</div>
+        <p>Browse our products and click "Add to Wish List" to save items you're interested in.</p>
+        <a href="{% url 'core:product_list' %}" class="btn btn-primary">Start Shopping</a>
+    {% endif %}
+{% endblock %}

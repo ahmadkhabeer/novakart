@@ -5,18 +5,29 @@
 <div class="account-grid">
     <aside class="account-sidebar">
         <h3>My Account</h3>
-        <ul class="account-nav">
-            <li class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+        <ul class="account-nav list-group list-group-flush">
+            <li class="list-group-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                 <a href="{% url 'users:dashboard' %}">Dashboard</a>
             </li>
-            <li class="{% if request.resolver_match.url_name == 'profile_settings' %}active{% endif %}">
-                <a href="{% url 'users:profile_settings' %}">Profile Settings</a>
+            
+            <li class="list-group-item {% if request.resolver_match.url_name == 'wishlist' %}active{% endif %}">
+                <a href="{% url 'users:wishlist' %}">My Wish List</a>
             </li>
-            <li class="{% if request.resolver_match.url_name == 'address_list' %}active{% endif %}">
+            <li class="list-group-item {% if request.resolver_match.url_name == 'order_history' or request.resolver_match.url_name == 'order_detail' %}active{% endif %}">
+                <a href="{% url 'orders:order_history' %}">My Orders</a>
+            </li>
+            <li class="list-group-item {% if 'address' in request.resolver_match.url_name %}active{% endif %}">
                 <a href="{% url 'users:address_list' %}">My Addresses</a>
             </li>
-            <li><a href="#">My Orders</a></li>
-            <li><a href="{% url 'users:logout' %}">Logout</a></li>
+            <li class="list-group-item {% if 'payment_method' in request.resolver_match.url_name %}active{% endif %}">
+                <a href="{% url 'users:payment_method_list' %}">Payment Methods</a>
+            </li>
+            <li class="list-group-item {% if request.resolver_match.url_name == 'profile_settings' %}active{% endif %}">
+                <a href="{% url 'users:profile_settings' %}">Profile Settings</a>
+            </li>
+            <li class="list-group-item">
+                <a href="{% url 'users:logout' %}">Logout</a>
+            </li>
         </ul>
     </aside>
 

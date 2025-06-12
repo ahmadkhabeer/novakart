@@ -7,20 +7,17 @@
 <div class="product-detail-grid">
     <div class="product-images">
         {% with feature_image=product.get_feature_image %}
-            {% if feature_image %}
-                <img src="{{ feature_image.image.url }}" alt="{{ feature_image.alt_text }}" class="main-image">
-            {% else %}
-                <img src="{% static 'images/no_image.png' %}" alt="{{ product.title }}" class="main-image">
-            {% endif %}
-        
-            <div class="thumbnail-images">
-                {% for image in images %}
-                    {# Only display the thumbnail if it's NOT the main feature image #}
-                    {% if image != feature_image %}
-                        <img src="{{ image.image.url }}" alt="{{ image.alt_text }}" class="thumbnail">
-                    {% endif %}
-                {% endfor %}
-                </div>
+        <div class="main-image-container">
+            <img src="{% if feature_image %}{{ feature_image.image.url }}{% else %}{% static 'images/no_image.png' %}{% endif %}"
+                 alt="{% if feature_image %}{{ feature_image.alt_text }}{% else %}{{ product.title }}{% endif %}"
+                 class="main-image" id="mainProductImage"
+                 data-default-image="{% if feature_image %}{{ feature_image.image.url }}{% else %}{% static 'images/no_image.png' %}{% endif %}">
+        </div>
+        <div class="thumbnail-container" id="thumbnailContainer">
+            {% for img in parent_images %}
+                <img src="{{ img.image.url }}" alt="{{ img.alt_text }}" class="thumbnail" data-image-src="{{ img.image.url }}">
+            {% endfor %}
+        </div>
         {% endwith %}
     </div>
 
@@ -28,7 +25,23 @@
         <h1 class="product-title">{{ product.title }}</h1>
         <p class="product-brand">Brand: <a href="#">{{ product.brand }}</a></p>
         <hr>
-        
+
+        <div class="attributes-section" id="variantSelector">
+            {% for attr_name, attr_values in attributes_data.items %}
+                <div class="attribute-group mb-3" data-attribute-group="{{ attr_name }}">
+                    <strong>{{ attr_name }}:</strong> <span class="selected-value" id="selected-{{ attr_name|slugify }}"></span>
+                    <div class="variant-options mt-1">
+                        {% for value in attr_values %}
+                            <button class="btn btn-sm btn-outline-secondary variant-option-btn"
+                                    data-value-id="{{ value.id }}">
+                                {{ value.value }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
         <div class="product-description">
             <h3>About this item</h3>
             <p>{{ product.description|linebreaks }}</p>
@@ -36,30 +49,31 @@
     </div>
 
     <aside class="buy-box">
-        {% if main_offer %}
-            <h2 class="price">${{ main_offer.price }}</h2>
-            <p>Arrives soon. Order today.</p>
-            <p class="stock-status">
-                {% if main_offer.quantity > 0 %} In Stock. {% else %} Out of Stock. {% endif %}
-            </p>
-            <form action="{% url 'carts:add_to_cart' %}" method="post">
-                {% csrf_token %}
-                <input type="hidden" name="offer_id" value="{{ main_offer.id }}">
-                <div class="quantity-selector mb-3">
-                    <label for="quantity">Qty:</label>
-                    <select name="quantity" id="quantity" class="form-select-sm">
-                        {% for i in "12345"|make_list %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-warning w-100 mb-2">Add to Cart</button>
-            </form>
-            <div class="seller-info">
-                <p><small>Ships from: NovaKart</small></p>
-                <p><small>Sold by: <a href="#">{{ main_offer.seller.name }}</a></small></p>
+        <h2 class="price" id="buy-box-price">{% if main_offer %}${{ main_offer.price|floatformat:2 }}{% else %}N/A{% endif %}</h2>
+        <p class="stock-status" id="buy-box-stock-status">
+            {% if main_offer and main_offer.quantity > 0 %}In Stock.{% else %}Please select options.{% endif %}
+        </p>
+        <form action="{% url 'carts:add_to_cart' %}" method="post" id="add-to-cart-form">
+            {% csrf_token %}
+            <input type="hidden" name="offer_id" value="{% if main_offer %}{{ main_offer.id }}{% endif %}" id="add-to-cart-offer-id">
+            <div class="quantity-selector mb-3">
+                <label for="quantity">Qty:</label>
+                <select name="quantity" id="quantity" class="form-select-sm">
+                    {% for i in "12345"|make_list %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+                </select>
             </div>
-        {% else %}
-            <p class="unavailable"><strong>Currently unavailable.</strong></p>
+            <button type="submit" class="btn btn-warning w-100 mb-2" id="add-to-cart-button" disabled>Select Options</button>
+        </form>
+
+        <!-- ADD TO WISH LIST BUTTON -->
+        {% if user.is_authenticated %}
+        <form action="{% url 'users:add_to_wishlist' product.id %}" method="post" class="d-grid mt-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Add to Wish List</button>
+        </form>
         {% endif %}
+        <!-- END WISH LIST BUTTON -->
+
     </aside>
 </div>
 
@@ -85,4 +99,7 @@
         <p>No reviews yet. Be the first to write one!</p>
     {% endfor %}
 </div>
+
+<!-- Embed the variant data as JSON for our script to use -->
+{{ variant_map_json|json_script:"variant-map-data" }}
 {% endblock %}

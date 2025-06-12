@@ -4,16 +4,11 @@ from . import views
 app_name = 'users'
 
 urlpatterns = [
-    # Main account dashboard
+    # Auth & Account Management
     path('dashboard/', views.dashboard, name='dashboard'),
-    
-    # Auth
     path('register/', views.register, name='register'),
     path('login/', views.UserLoginView.as_view(), name='login'),
-    # This path correctly points to the secure, class-based Logout view.
     path('logout/', views.UserLogoutView.as_view(), name='logout'),
-
-    # Profile Settings
     path('profile/', views.profile_settings, name='profile_settings'),
 
     # Shipping Address CRUD
@@ -26,4 +21,9 @@ urlpatterns = [
     path('payment-methods/', views.payment_method_list, name='payment_method_list'),
     path('payment-methods/<int:pk>/delete/', views.payment_method_delete, name='payment_method_delete'),
     path('payment-methods/<int:pk>/set-default/', views.payment_method_set_default, name='payment_method_set_default'),
+    
+    # --- NEW WISH LIST URLS ---
+    path('wishlist/', views.wishlist_view, name='wishlist'),
+    path('wishlist/add/<int:product_id>/', views.add_to_wishlist_view, name='add_to_wishlist'),
+    path('wishlist/remove/<int:item_id>/', views.remove_from_wishlist_view, name='remove_from_wishlist'),
 ]

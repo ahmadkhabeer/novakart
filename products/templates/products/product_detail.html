@@ -64,16 +64,12 @@
             </div>
             <button type="submit" class="btn btn-warning w-100 mb-2" id="add-to-cart-button" disabled>Select Options</button>
         </form>
-
-        <!-- ADD TO WISH LIST BUTTON -->
         {% if user.is_authenticated %}
         <form action="{% url 'users:add_to_wishlist' product.id %}" method="post" class="d-grid mt-2">
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-secondary btn-sm">Add to Wish List</button>
         </form>
         {% endif %}
-        <!-- END WISH LIST BUTTON -->
-
     </aside>
 </div>
 
@@ -100,6 +96,57 @@
     {% endfor %}
 </div>
 
-<!-- Embed the variant data as JSON for our script to use -->
+<div class="q-and-a-section mt-5">
+    <hr>
+    <h3>Customer Questions & Answers</h3>
+    
+    {% if user.is_authenticated %}
+    <div class="card my-4">
+        <div class="card-body">
+            <h5 class="card-title">Have a question?</h5>
+            <form action="{% url 'reviews:ask_question' product.id %}" method="post">
+                {% csrf_token %}
+                {{ question_form.text }}
+                <button type="submit" class="btn btn-primary mt-2">Ask Question</button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <a href="{% url 'users:login' %}?next={{ request.path }}">Log in</a> to ask a question.
+    </div>
+    {% endif %}
+
+    {% for question in questions %}
+        <div class="qa-item mb-4">
+            <p><strong>Question:</strong> {{ question.text }}</p>
+            <p class="text-muted small">Asked by {{ question.customer.username }} on {{ question.created_at|date:"F d, Y" }}</p>
+            
+            <div class="answers ps-4">
+                {% for answer in question.answers.all %}
+                    <div class="answer-item mb-2 border-start ps-3">
+                        <p><strong>Answer:</strong> {{ answer.text|linebreaksbr }}</p>
+                        <p class="text-muted small">Answered by {{ answer.customer.username }} on {{ answer.created_at|date:"F d, Y" }}</p>
+                    </div>
+                {% empty %}
+                    <p class="small fst-italic">No answers yet.</p>
+                {% endfor %}
+
+                {% if user.is_authenticated %}
+                <details class="mt-2">
+                    <summary style="cursor: pointer;">Answer this question</summary>
+                    <form action="{% url 'reviews:post_answer' question.id %}" method="post" class="mt-2">
+                        {% csrf_token %}
+                        <textarea name="text" class="form-control" rows="2" required placeholder="Contribute an answer..."></textarea>
+                        <button type="submit" class="btn btn-secondary btn-sm mt-2">Post Answer</button>
+                    </form>
+                </details>
+                {% endif %}
+            </div>
+        </div>
+    {% empty %}
+        <p>No questions have been asked yet. Be the first!</p>
+    {% endfor %}
+</div>
 {{ variant_map_json|json_script:"variant-map-data" }}
 {% endblock %}

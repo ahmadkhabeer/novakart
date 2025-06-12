@@ -1,0 +1,23 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Confirm Delete Offer{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h2>Are you sure?</h2>
+            <p>You are about to permanently delete your offer for:</p>
+            <div class="alert alert-warning">
+                <strong>{{ offer.variant.parent_product.title }}</strong><br>
+                Price: ${{ offer.price|floatformat:2 }} | Quantity: {{ offer.quantity }}
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Yes, Delete Offer</button>
+                <a href="{% url 'marketplace:seller_dashboard' %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

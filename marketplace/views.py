@@ -5,13 +5,17 @@ from django.contrib import messages
 from django.db.models import Q
 
 from .models import Seller, Offer
-from products.models import ProductVariant # We need this for the search
+from products.models import ProductVariant
 from .forms import SellerRegisterForm, OfferForm
 from .decorators import seller_required
 
+# --- SELLER ONBOARDING ---
+
 @login_required
 def seller_register_view(request):
-    # ... (this view is correct and remains unchanged)
+    """
+    Handles the process for a regular user to become a seller.
+    """
     if Seller.objects.filter(user=request.user).exists():
         messages.info(request, "You are already registered as a seller.")
         return redirect('users:dashboard')
@@ -38,12 +42,19 @@ def seller_register_view(request):
     return render(request, 'marketplace/seller_register.html', context)
 
 
+# --- SELLER DASHBOARD ---
+
 @login_required
 @seller_required
 def seller_dashboard_view(request):
-    # ... (this view is correct and remains unchanged)
+    """
+    Displays the main dashboard for a seller, showing their offers and stats.
+    """
     seller = request.user.seller
-    offers = Offer.objects.filter(seller=seller).select_related('variant__parent_product')
+    offers = Offer.objects.filter(seller=seller).select_related(
+        'variant__parent_product'
+    )
+
     context = {
         'seller': seller,
         'offers': offers,
@@ -52,18 +63,17 @@ def seller_dashboard_view(request):
     return render(request, 'marketplace/seller_dashboard.html', context)
 
 
-# --- NEW VIEWS FOR CREATING OFFERS ---
+# --- OFFER MANAGEMENT ---
 
 @login_required
 @seller_required
 def offer_create_product_select_view(request):
     """
-    Step 1 of creating an offer: Search for and select a product variant.
+    Step 1 of creating an offer: Search for and select a product variant from the catalog.
     """
     query = request.GET.get('q')
     variants = None
     if query:
-        # Search for variants based on product title, brand, or ASINs
         variants = ProductVariant.objects.filter(
             Q(parent_product__title__icontains=query) |
             Q(parent_product__brand__icontains=query) |
@@ -86,7 +96,6 @@ def offer_create_view(request, variant_id):
     variant = get_object_or_404(ProductVariant, id=variant_id)
     seller = request.user.seller
 
-    # Check if this seller already has an offer for this variant
     if Offer.objects.filter(variant=variant, seller=seller).exists():
         messages.warning(request, "You already have an active offer for this product. Please edit the existing offer instead.")
         return redirect('marketplace:seller_dashboard')
@@ -105,6 +114,50 @@ def offer_create_view(request, variant_id):
 
     context = {
         'form': form,
-        'variant': variant
+        'variant': variant,
+        'title': 'Create Your Offer'
     }
     return render(request, 'marketplace/offer_form.html', context)
+
+
+@login_required
+@seller_required
+def offer_update_view(request, offer_id):
+    """
+    Allows a seller to edit their own existing offer.
+    """
+    offer = get_object_or_404(Offer, id=offer_id, seller=request.user.seller)
+    
+    if request.method == 'POST':
+        form = OfferForm(request.POST, instance=offer)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Your offer has been updated.")
+            return redirect('marketplace:seller_dashboard')
+    else:
+        form = OfferForm(instance=offer)
+        
+    context = {
+        'form': form,
+        'variant': offer.variant,
+        'title': 'Edit Your Offer'
+    }
+    return render(request, 'marketplace/offer_form.html', context)
+
+@login_required
+@seller_required
+def offer_delete_view(request, offer_id):
+    """
+    Allows a seller to delete their own offer after confirmation.
+    """
+    offer = get_object_or_404(Offer, id=offer_id, seller=request.user.seller)
+    
+    if request.method == 'POST':
+        offer.delete()
+        messages.success(request, "Your offer has been successfully deleted.")
+        return redirect('marketplace:seller_dashboard')
+        
+    context = {
+        'offer': offer
+    }
+    return render(request, 'marketplace/offer_confirm_delete.html', context)

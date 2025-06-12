@@ -6,11 +6,14 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from decimal import Decimal
 
-from .forms import ShippingAddressSelectForm, PaymentMethodSelectForm, PromotionApplyForm
+from .forms import ShippingAddressSelectForm, PaymentMethodSelectForm, PromotionApplyForm, ReturnRequestForm
 from carts.models import Cart
-from .models import Order, OrderItem, Shipment, Promotion
+from .models import Order, OrderItem, Shipment, Promotion, ReturnRequest, ReturnItem
 
 def send_order_confirmation_email(order):
+    """
+    Helper function to send an order confirmation email to the user.
+    """
     subject = f"Your NovaKart Order Confirmation #{order.id}"
     html_message = render_to_string('emails/order_confirmation.html', {'order': order})
     plain_message = f"Your order #{order.id} has been placed successfully."
@@ -21,6 +24,9 @@ def send_order_confirmation_email(order):
 
 @login_required
 def checkout_view(request):
+    """
+    Displays the checkout page with forms for shipping, payment, and promotions.
+    """
     cart = get_object_or_404(Cart, user=request.user)
     active_items = cart.items.filter(is_saved_for_later=False)
 
@@ -41,7 +47,6 @@ def checkout_view(request):
     shipping_form = ShippingAddressSelectForm(user=request.user)
     payment_form = PaymentMethodSelectForm(user=request.user)
 
-    # REFACTORED: Use the new method from the Cart model
     promo_id = request.session.get('promo_id')
     totals = cart.get_totals(promo_id=promo_id)
 
@@ -50,7 +55,7 @@ def checkout_view(request):
         'shipping_form': shipping_form,
         'payment_form': payment_form,
         'promo_form': promo_form,
-        **totals  # Unpack the totals dictionary into the context
+        **totals
     }
     return render(request, 'orders/checkout.html', context)
 
@@ -58,6 +63,9 @@ def checkout_view(request):
 @login_required
 @transaction.atomic
 def place_order_view(request):
+    """
+    Handles the submission of the checkout form and creates the final order.
+    """
     if request.method != 'POST':
         return redirect('orders:checkout')
 
@@ -68,7 +76,6 @@ def place_order_view(request):
         messages.error(request, "Cannot place an order with an empty cart.")
         return redirect('carts:view_cart')
 
-    # CRITICAL STOCK VALIDATION
     for item in active_items:
         if item.quantity > item.offer.quantity:
             messages.error(request, f"Sorry, the quantity for '{item.offer.variant.parent_product.title}' has changed. Only {item.offer.quantity} are left in stock. Please update your cart.")
@@ -83,7 +90,6 @@ def place_order_view(request):
         
     shipping_address = shipping_form.cleaned_data['shipping_address']
     
-    # REFACTORED: Recalculate totals using the cart method to ensure integrity
     promo_id = request.session.get('promo_id')
     totals = cart.get_totals(promo_id=promo_id)
     final_total = totals['final_total']
@@ -97,7 +103,7 @@ def place_order_view(request):
         except Promotion.DoesNotExist:
             promo_code = None
 
-    payment_successful = True # Placeholder for payment gateway call
+    payment_successful = True
 
     if not payment_successful:
         messages.error(request, "Payment failed.")
@@ -136,6 +142,7 @@ def place_order_view(request):
     if 'promo_id' in request.session:
         del request.session['promo_id']
     
+    # In a real production app, this would be an asynchronous task
     send_order_confirmation_email(order)
 
     messages.success(request, f"Thank you! Your order #{order.id} has been placed.")
@@ -144,19 +151,28 @@ def place_order_view(request):
 
 @login_required
 def order_success_view(request, order_id):
+    """
+    Displays a simple success page after an order is placed.
+    """
     order = get_object_or_404(Order, id=order_id, user=request.user)
     return render(request, 'orders/order_success.html', {'order': order})
 
 
 @login_required
 def order_history_view(request):
-    orders = Order.objects.filter(user=request.user).select_related('shipping_address').order_by('-created_at')
+    """
+    Displays a list of all past orders for the logged-in user.
+    """
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')
     context = {'orders': orders}
     return render(request, 'orders/order_history.html', context)
 
 
 @login_required
 def order_detail_view(request, order_id):
+    """
+    Displays the detailed information for a single order, including its shipments.
+    """
     order = get_object_or_404(Order, id=order_id, user=request.user)
     shipments = order.shipments.prefetch_related('items__offer__variant__parent_product', 'seller').all()
     
@@ -165,3 +181,46 @@ def order_detail_view(request, order_id):
         'shipments': shipments,
     }
     return render(request, 'orders/order_detail.html', context)
+
+# --- NEW CUSTOMER RETURNS VIEW ---
+@login_required
+@transaction.atomic
+def initiate_return_view(request, order_id):
+    """
+    Allows a user to initiate a return request for a completed order.
+    """
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+
+    # Business logic: Only allow returns for orders that are 'DELIVERED'.
+    # In a real app, you might also check if a return period (e.g., 30 days) has passed.
+    if order.status != Order.OrderStatus.DELIVERED:
+        messages.error(request, "You can only initiate a return for delivered orders.")
+        return redirect('orders:order_detail', order_id=order.id)
+
+    if request.method == 'POST':
+        form = ReturnRequestForm(request.POST, order=order)
+        if form.is_valid():
+            # Create the main ReturnRequest object
+            return_request = ReturnRequest.objects.create(
+                order=order,
+                user=request.user,
+                reason=form.cleaned_data['reason']
+            )
+            # Create a ReturnItem for each OrderItem selected in the form
+            for item in form.cleaned_data['items_to_return']:
+                ReturnItem.objects.create(
+                    return_request=return_request,
+                    order_item=item,
+                    quantity=item.quantity # Assuming return of full quantity for simplicity
+                )
+            
+            messages.success(request, f"Your return request for order #{order.id} has been submitted.")
+            return redirect('orders:order_detail', order_id=order.id)
+    else:
+        form = ReturnRequestForm(order=order)
+
+    context = {
+        'form': form,
+        'order': order
+    }
+    return render(request, 'orders/initiate_return.html', context)

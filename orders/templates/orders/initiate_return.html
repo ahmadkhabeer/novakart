@@ -1,0 +1,39 @@
+{% extends 'users/base_account.html' %}
+
+{% block title %}Request a Return{% endblock %}
+
+{% block account_content %}
+    <h2>Request a Return</h2>
+    <h4>For Order: <a href="{% url 'orders:order_detail' order.id %}">#{{ order.id }}</a></h4>
+    <p>Placed on: {{ order.created_at|date:"F d, Y" }}</p>
+    <hr>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <p><strong>{{ form.items_to_return.label }}:</strong></p>
+            {% for checkbox in form.items_to_return %}
+                <div class="form-check">
+                    {{ checkbox.tag }}
+                    <label for="{{ checkbox.id_for_label }}" class="form-check-label">
+                        {{ checkbox.choice_label.quantity }} x {{ checkbox.choice_label.offer.variant.parent_product.title }}
+                    </label>
+                </div>
+            {% endfor %}
+            {% if form.items_to_return.errors %}
+                <div class="alert alert-danger mt-2">{{ form.items_to_return.errors.as_text }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
+            <label for="{{ form.reason.id_for_label }}" class="form-label"><strong>{{ form.reason.label }}:</strong></label>
+            {{ form.reason }}
+            {% if form.reason.errors %}
+                <div class="alert alert-danger mt-2">{{ form.reason.errors.as_text }}</div>
+            {% endif %}
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Submit Return Request</button>
+        <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+{% endblock %}

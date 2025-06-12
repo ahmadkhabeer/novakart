@@ -20,7 +20,15 @@
                 </form>
 
                 <ul class="nav-links">
+                    <li><a href="{% url 'promotions:deal_list' %}">Today's Deals</a></li>
+                    
                     {% if user.is_authenticated %}
+                        
+                        {% for group in user.groups.all %}
+                            {% if group.name == 'Sellers' %}
+                                <li><a href="{% url 'marketplace:seller_dashboard' %}" class="fw-bold">Seller Dashboard</a></li>
+                            {% endif %}
+                        {% endfor %}
                         <li><a href="{% url 'users:dashboard' %}">My Account</a></li>
                         <li>
                             <form action="{% url 'users:logout' %}" method="post" class="d-inline">
@@ -28,7 +36,7 @@
                                 <button type="submit" class="nav-link-button">Logout</button>
                             </form>
                         </li>
-                        {% else %}
+                    {% else %}
                         <li><a href="{% url 'users:login' %}">Login</a></li>
                         <li><a href="{% url 'users:register' %}">Register</a></li>
                     {% endif %}
@@ -52,5 +60,7 @@
             <p>&copy; {% now "Y" %} NovaKart. All rights reserved.</p>
         </div>
     </footer>
+
+    <script src="{% static 'core/js/main.js' %}"></script>
 </body>
 </html>

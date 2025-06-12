@@ -10,19 +10,20 @@ from .forms import ProductReviewForm
 def add_review(request, product_id):
     product = get_object_or_404(Product, id=product_id)
 
-    # Check if the user has purchased this product
+    # 1. Check if the user has purchased this product
     has_purchased = OrderItem.objects.filter(
         order__user=request.user,
-        offer__variant__parent_product=product
+        offer__variant__parent_product=product,
+        order__paid=True # Only allow reviews for paid orders
     ).exists()
 
     if not has_purchased:
         messages.error(request, "You can only review products you have purchased.")
         return redirect(product.get_absolute_url())
     
-    # Check if the user has already reviewed this product
+    # 2. Check if the user has already reviewed this product
     if ProductReview.objects.filter(customer=request.user, product=product).exists():
-        messages.info(request, "You have already reviewed this product.")
+        messages.info(request, "You have already submitted a review for this product.")
         return redirect(product.get_absolute_url())
 
     if request.method == 'POST':
@@ -31,9 +32,9 @@ def add_review(request, product_id):
             review = form.save(commit=False)
             review.customer = request.user
             review.product = product
-            review.verified_purchase = True
+            review.verified_purchase = True # Set verified purchase flag
             review.save()
-            messages.success(request, "Your review has been submitted.")
+            messages.success(request, "Thank you! Your review has been submitted.")
             return redirect(product.get_absolute_url())
     else:
         form = ProductReviewForm()

@@ -1,0 +1,29 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Request New Product{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Request a New Product for the Catalog</h2>
+                </div>
+                <div class="card-body">
+                    <p>If you can't find the product you want to sell in our catalog, please provide the details below. Our team will review your request and add it to the catalog if approved.</p>
+                    <hr>
+                    <form method="POST">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <div class="form-group mt-4">
+                            <button class="btn btn-primary" type="submit">Submit Request</button>
+                            <a href="{% url 'marketplace:offer_add' %}" class="btn btn-secondary">Back to Search</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

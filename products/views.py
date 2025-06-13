@@ -1,17 +1,21 @@
 import json
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from collections import OrderedDict
 
-from .models import Product, ProductVariant
+from .models import Product, ProductVariant, ProductRequest
 from reviews.models import ProductReview, ProductQuestion
 from orders.models import OrderItem
-from reviews.forms import QuestionForm # Import the QuestionForm
+from reviews.forms import QuestionForm
+from .forms import ProductRequestForm
+from marketplace.decorators import seller_required
 
 def product_detail(request, parent_asin):
     """
     Displays the details for a parent product, including variants, offers, 
-    images, reviews, and the new Q&A section.
+    images, reviews, and the Q&A section.
     """
     product = get_object_or_404(Product, parent_asin=parent_asin)
     
@@ -23,16 +27,9 @@ def product_detail(request, parent_asin):
     
     parent_images = product.images.all()
     reviews = product.reviews.select_related('customer').order_by('-created_at')
-
-    # --- NEW: Fetch Q&A data efficiently ---
-    # Fetches all questions and, for each question, prefetches all of its answers
-    # and the customer who wrote each answer. This is highly performant.
     questions = product.questions.select_related('customer').prefetch_related('answers__customer').order_by('-created_at')
-
-    # --- Instantiate the form for asking a new question ---
     question_form = QuestionForm()
     
-    # Logic to check if user can review the product
     can_review = False
     if request.user.is_authenticated:
         has_purchased = OrderItem.objects.filter(
@@ -44,7 +41,6 @@ def product_detail(request, parent_asin):
         if has_purchased and not already_reviewed:
             can_review = True
             
-    # Logic to group attributes for display
     attributes_data = OrderedDict()
     for variant in variants:
         for attr_value in variant.attributes.all():
@@ -55,7 +51,6 @@ def product_detail(request, parent_asin):
     for attr_name in attributes_data:
         attributes_data[attr_name] = sorted(list(attributes_data[attr_name]), key=lambda x: x.value)
 
-    # Logic to create a JSON map for JavaScript
     variant_map = {
         "-".join(str(a.id) for a in v.attributes.all().order_by('id')): {
             'id': v.id,
@@ -89,7 +84,6 @@ def get_variant_data_api(request, variant_id):
         
         image_urls = [img.image.url for img in variant.images.all()]
         if not image_urls:
-            # Fallback to parent images if variant has no specific images
             image_urls = [img.image.url for img in variant.parent_product.images.all()]
 
         if best_offer:
@@ -105,3 +99,27 @@ def get_variant_data_api(request, variant_id):
             return JsonResponse({'in_stock': False, 'image_urls': image_urls}, status=404)
     except ProductVariant.DoesNotExist:
         return JsonResponse({'error': 'Variant not found'}, status=404)
+
+
+# --- SELLER PRODUCT REQUEST VIEW ---
+@login_required
+@seller_required
+def request_new_product_view(request):
+    """
+    Allows a seller to fill out a form to request a new product be added to the catalog.
+    """
+    if request.method == 'POST':
+        form = ProductRequestForm(request.POST)
+        if form.is_valid():
+            product_request = form.save(commit=False)
+            product_request.seller = request.user.seller # Assign the logged-in seller
+            product_request.save()
+            messages.success(request, "Your product request has been submitted for review. Thank you!")
+            return redirect('marketplace:seller_dashboard')
+    else:
+        form = ProductRequestForm()
+
+    context = {
+        'form': form
+    }
+    return render(request, 'products/product_request_form.html', context)

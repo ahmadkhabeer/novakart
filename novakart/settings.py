@@ -26,7 +26,9 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    # '127.0.0.1', 'localhost', config('NGROK_HOSTNAME'),
+]
 
 
 # Application definition
@@ -148,3 +150,10 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 LOGIN_REDIRECT_URL = '/account/dashboard/'
 LOGIN_URL = '/account/login/'
 LOGOUT_REDIRECT_URL = '/'
+
+
+# Paymob Configuration
+PAYMOB_API_KEY = config('PAYMOB_API_KEY')
+PAYMOB_HMAC_SECRET = config('PAYMOB_HMAC_SECRET')
+PAYMOB_INTEGRATION_ID = config('PAYMOB_INTEGRATION_ID', cast=int)
+PAYMOB_IFRAME_ID = config('PAYMOB_IFRAME_ID', cast=int)

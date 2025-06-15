@@ -11,7 +11,7 @@ from reviews.forms import QuestionForm
 def product_detail(request, parent_asin):
     """
     Displays the details for a parent product, including variants, offers, 
-    images, reviews, and the Q&A section.
+    images, reviews, and the new Q&A section.
     """
     product = get_object_or_404(Product, parent_asin=parent_asin)
     
@@ -26,6 +26,7 @@ def product_detail(request, parent_asin):
     questions = product.questions.select_related('customer').prefetch_related('answers__customer').order_by('-created_at')
     question_form = QuestionForm()
     
+    # Logic to check if user can review the product
     can_review = False
     if request.user.is_authenticated:
         has_purchased = OrderItem.objects.filter(
@@ -37,21 +38,30 @@ def product_detail(request, parent_asin):
         if has_purchased and not already_reviewed:
             can_review = True
             
+    # Logic to group attributes for easy display in the template
     attributes_data = OrderedDict()
-    for variant in variants:
-        for attr_value in variant.attributes.all():
-            attr_name = attr_value.attribute.name
-            if attr_name not in attributes_data:
-                attributes_data[attr_name] = set()
-            attributes_data[attr_name].add(attr_value)
-    for attr_name in attributes_data:
-        attributes_data[attr_name] = sorted(list(attributes_data[attr_name]), key=lambda x: x.value)
+    if variants:
+        # A more efficient way to get all unique attribute values for this product
+        all_attribute_values = ProductVariant.objects.filter(parent_product=product).values_list(
+            'attributes__attribute__name', 
+            'attributes__value',
+            'attributes__id'
+        ).distinct()
 
-    variant_map = {
-        "-".join(str(a.id) for a in v.attributes.all().order_by('id')): {
-            'id': v.id,
-        } for v in variants
-    }
+        for attr_name, attr_value, attr_id in all_attribute_values:
+            if attr_name not in attributes_data:
+                attributes_data[attr_name] = []
+            
+            value_dict = {'id': attr_id, 'value': attr_value}
+            if value_dict not in attributes_data[attr_name]:
+                attributes_data[attr_name].append(value_dict)
+
+    # Logic to create a JSON map for JavaScript
+    variant_map = {}
+    for variant in variants:
+        # Sort attribute value IDs to create a consistent, order-independent key
+        key = "-".join(str(a.id) for a in variant.attributes.all().order_by('id'))
+        variant_map[key] = variant.id
 
     context = {
         'product': product,
@@ -78,6 +88,7 @@ def get_variant_data_api(request, variant_id):
         
         image_urls = [img.image.url for img in variant.images.all()]
         if not image_urls:
+            # Fallback to parent images if variant has no specific images
             image_urls = [img.image.url for img in variant.parent_product.images.all()]
 
         if best_offer:

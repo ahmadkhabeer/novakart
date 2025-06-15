@@ -36,12 +36,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 const button = event.target;
                 const group = button.closest('.attribute-group');
 
-                // Toggle the 'active' class for buttons within the same group
+                // If this button is already active, do nothing to prevent refetching.
+                if (button.classList.contains('active')) {
+                    return;
+                }
+
+                // De-select any other active button in the same group
                 const currentActive = group.querySelector('.active');
                 if (currentActive) {
                     currentActive.classList.remove('active', 'btn-dark');
                     currentActive.classList.add('btn-outline-secondary');
                 }
+                
+                // Select the new button
                 button.classList.add('active', 'btn-dark');
                 button.classList.remove('btn-outline-secondary');
                 
@@ -61,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const attributeGroups = document.querySelectorAll('.attribute-group');
 
         // Wait until an option from every attribute group is selected
-        if (selectedOptions.length !== attributeGroups.length) {
+        if (selectedOptions.length < attributeGroups.length) {
             disableBuyBox("Please select all options.");
             return;
         }
@@ -77,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetchVariantData(variantId);
         } else {
             disableBuyBox("This combination is currently unavailable.");
-            // Optionally reset the image gallery to the parent product's default
+            // Reset images to the parent product's default image
             updateImageGallery(null, mainImage.dataset.defaultImage); 
         }
     }
@@ -86,11 +93,9 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const url = `/products/api/variant/${variantId}/`;
             const response = await fetch(url);
-            // Always parse the JSON, as the view now always returns a 200 OK status
             const result = await response.json();
 
-            // --- THIS IS THE KEY FIX ---
-            // Check the 'status' field inside the JSON payload
+            // Check the 'status' field in the JSON payload
             if (result.status === 'ok') {
                 updateBuyBox(result);
                 updateImageGallery(result.image_urls);
@@ -133,7 +138,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!mainImage || !thumbnailContainer) return;
         thumbnailContainer.innerHTML = ''; // Clear old thumbnails
         
-        const imagesToShow = imageUrls && imageUrls.length > 0 ? imageUrls : (defaultImageUrl ? [defaultImageUrl] : []);
+        let imagesToShow = imageUrls;
+        // If the variant has no specific images, fall back to the provided default (parent) image
+        if (!imagesToShow || imagesToShow.length === 0) {
+            imagesToShow = defaultImageUrl ? [defaultImageUrl] : [];
+        }
 
         if (imagesToShow.length > 0) {
             mainImage.src = imagesToShow[0];
@@ -149,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         } else {
             // Final fallback to a placeholder if no images are available at all
-            mainImage.src = "{% static 'images/no_image.png' %}";
+            mainImage.src = "/static/images/no_image.png"; // Use a known static path
         }
     }
 });

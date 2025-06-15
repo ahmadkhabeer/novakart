@@ -1,16 +1,12 @@
 import json
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 from collections import OrderedDict
 
-from .models import Product, ProductVariant, ProductRequest
+from .models import Product, ProductVariant
 from reviews.models import ProductReview, ProductQuestion
 from orders.models import OrderItem
 from reviews.forms import QuestionForm
-from .forms import ProductRequestForm
-from marketplace.decorators import seller_required
 
 def product_detail(request, parent_asin):
     """
@@ -54,9 +50,6 @@ def product_detail(request, parent_asin):
     variant_map = {
         "-".join(str(a.id) for a in v.attributes.all().order_by('id')): {
             'id': v.id,
-            'price': f"{v.get_best_offer().price:.2f}" if v.get_best_offer() else None,
-            'in_stock': v.get_best_offer().quantity > 0 if v.get_best_offer() else False,
-            'image_urls': [img.image.url for img in v.images.all()],
         } for v in variants
     }
 
@@ -76,7 +69,8 @@ def product_detail(request, parent_asin):
 
 def get_variant_data_api(request, variant_id):
     """
-    An API endpoint that returns JSON data for a specific product variant's best offer and images.
+    An API endpoint that returns JSON data for a specific product variant's 
+    best offer and images. This version always returns a 200 OK HTTP status.
     """
     try:
         variant = ProductVariant.objects.prefetch_related('offers__seller', 'images').get(id=variant_id)
@@ -87,39 +81,23 @@ def get_variant_data_api(request, variant_id):
             image_urls = [img.image.url for img in variant.parent_product.images.all()]
 
         if best_offer:
-            data = {
+            # If an offer is found, send an 'ok' status with the data.
+            response_data = {
+                'status': 'ok',
                 'offer_id': best_offer.id,
                 'price': f"{best_offer.price:.2f}",
                 'in_stock': best_offer.quantity > 0,
                 'seller_name': best_offer.seller.name,
                 'image_urls': image_urls,
             }
-            return JsonResponse(data)
+            return JsonResponse(response_data)
         else:
-            return JsonResponse({'in_stock': False, 'image_urls': image_urls}, status=404)
+            # If no offer is found, send an 'unavailable' status.
+            return JsonResponse({
+                'status': 'unavailable', 
+                'image_urls': image_urls
+            })
+            
     except ProductVariant.DoesNotExist:
-        return JsonResponse({'error': 'Variant not found'}, status=404)
-
-
-# --- SELLER PRODUCT REQUEST VIEW ---
-@login_required
-@seller_required
-def request_new_product_view(request):
-    """
-    Allows a seller to fill out a form to request a new product be added to the catalog.
-    """
-    if request.method == 'POST':
-        form = ProductRequestForm(request.POST)
-        if form.is_valid():
-            product_request = form.save(commit=False)
-            product_request.seller = request.user.seller # Assign the logged-in seller
-            product_request.save()
-            messages.success(request, "Your product request has been submitted for review. Thank you!")
-            return redirect('marketplace:seller_dashboard')
-    else:
-        form = ProductRequestForm()
-
-    context = {
-        'form': form
-    }
-    return render(request, 'products/product_request_form.html', context)
+        # If the variant ID itself is invalid, send an 'error' status.
+        return JsonResponse({'status': 'error', 'message': 'Variant not found'})

@@ -11,7 +11,7 @@ from .paymob_service import PaymobService
 from carts.models import Cart
 from .models import Order, OrderItem, Shipment, Promotion, ReturnRequest, ReturnItem
 from .forms import ShippingAddressSelectForm, PromotionApplyForm, ReturnRequestForm
-from users.forms import PaymentMethodSelectForm # Note: This form is no longer used in checkout
+
 
 # --- CHECKOUT & PAYMENT VIEWS ---
 
@@ -32,15 +32,19 @@ def checkout_view(request):
         # This part handles the promo code form submission
         promo_form = PromotionApplyForm(request.POST)
         if promo_form.is_valid():
-            promo = promo_form.cleaned_data['promo_code']
-            request.session['promo_id'] = promo.id
-            messages.success(request, f"Promotion '{promo.name}' applied.")
-        else:
-            # Pass the invalid form back to display errors
-            pass # The re-rendering below will handle this
-    
-    # Always create a fresh instance for the GET display
-    promo_form = PromotionApplyForm(initial=request.POST if request.method == 'POST' else None)
+            promo = promo_form.cleaned_data.get('promo_code')
+            if promo:
+                request.session['promo_id'] = promo.id
+                messages.success(request, f"Promotion '{promo.name}' applied.")
+            else:
+                # If the form is submitted with an empty field, remove existing promo
+                if 'promo_id' in request.session:
+                    del request.session['promo_id']
+                messages.info(request, "Promotion removed.")
+            return redirect('orders:checkout')
+    else:
+        promo_form = PromotionApplyForm()
+
     shipping_form = ShippingAddressSelectForm(user=request.user)
 
     promo_id = request.session.get('promo_id')
@@ -59,7 +63,7 @@ def checkout_view(request):
 @transaction.atomic
 def start_payment_view(request):
     """
-    Step 2 of Checkout: Create a PENDING order and redirect to Paymob.
+    Step 2 of Checkout: Creates a PENDING order locally and redirects the user to Paymob for payment.
     This view is triggered when the user confirms their shipping address.
     """
     if request.method != 'POST':
@@ -69,36 +73,50 @@ def start_payment_view(request):
     active_items = cart.items.filter(is_saved_for_later=False).select_related('offer')
 
     if not active_items.exists():
+        messages.error(request, "Your cart is empty, cannot proceed to payment.")
         return redirect('carts:view_cart')
 
     shipping_form = ShippingAddressSelectForm(request.POST, user=request.user)
 
     if not shipping_form.is_valid():
         messages.error(request, "Please select a valid shipping address.")
+        # To display the error correctly, we should re-render the checkout page
+        # This part is simplified for brevity; a full implementation would re-render the form with errors.
         return redirect('orders:checkout')
-
-    # Re-calculate totals securely on the backend
+        
+    shipping_address = shipping_form.cleaned_data['shipping_address']
+    
+    # Re-calculate totals securely on the backend to ensure integrity
     promo_id = request.session.get('promo_id')
     totals = cart.get_totals(promo_id=promo_id)
     final_total = totals['final_total']
     
     # Create the Order locally first with paid=False
-    shipping_address = shipping_form.cleaned_data['shipping_address']
     order = Order.objects.create(
         user=request.user,
         shipping_address=shipping_address,
         total_paid=final_total,
         paid=False,
-        status=Order.OrderStatus.PENDING # Initial status
+        status=Order.OrderStatus.PENDING
     )
     
     if promo_id and totals['discount'] > 0:
-        order.promotions_applied.add(promo_id)
+        try:
+            promo_code = Promotion.objects.get(id=promo_id)
+            if promo_code.is_valid():
+                order.promotions_applied.add(promo_code)
+        except Promotion.DoesNotExist:
+            pass
 
     for item in active_items:
-        OrderItem.objects.create(order=order, offer=item.offer, price_at_purchase=item.offer.price, quantity=item.quantity)
+        OrderItem.objects.create(
+            order=order, 
+            offer=item.offer, 
+            price_at_purchase=item.offer.price, 
+            quantity=item.quantity
+        )
 
-    # --- Start Paymob Payment Flow ---
+    # Start Paymob Payment Flow
     try:
         paymob = PaymobService()
         auth_token = paymob.get_auth_token()
@@ -106,12 +124,11 @@ def start_payment_view(request):
         payment_key = paymob.get_payment_key(auth_token, paymob_order_data, order)
         iframe_url = paymob.get_payment_iframe_url(payment_key)
         
-        # Redirect user to Paymob's secure payment page
         return redirect(iframe_url)
 
     except Exception as e:
         messages.error(request, f"Could not connect to the payment provider. Please try again later.")
-        # The transaction will be rolled back automatically because of @transaction.atomic
+        # The transaction will be rolled back automatically because of the @transaction.atomic decorator
         return redirect('orders:checkout')
 
 
@@ -124,10 +141,10 @@ def payment_webhook(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         obj_data = data.get('obj')
-        hmac = data.get('hmac')
+        hmac_from_request = data.get('hmac')
 
         paymob = PaymobService()
-        if not paymob.validate_hmac(hmac, obj_data):
+        if not paymob.validate_hmac(hmac_from_request, obj_data):
             return HttpResponse("HMAC validation failed.", status=403)
         
         order_id = obj_data.get('merchant_order_id')
@@ -141,12 +158,13 @@ def payment_webhook(request):
                     order.status = Order.OrderStatus.PROCESSING
                     order.save()
 
-                    # Now that the order is paid, decrement stock and create shipments
                     items_by_seller = {}
-                    for item in order.items.select_related('offer__seller').all():
+                    for item in order.items.select_related('offer__seller', 'offer__variant__parent_product').all():
+                        # Decrement stock
                         item.offer.quantity -= item.quantity
                         item.offer.save()
                         
+                        # Group items for shipment creation
                         seller = item.offer.seller
                         if seller not in items_by_seller:
                             items_by_seller[seller] = []
@@ -161,7 +179,7 @@ def payment_webhook(request):
                     if 'promo_id' in request.session:
                         del request.session['promo_id']
 
-                    # You can add your Celery task here to send the email
+                    # In production, use Celery to send email asynchronously
                     # send_order_confirmation_email_task.delay(order.id)
                 
                 return HttpResponse("Webhook received.", status=200)
@@ -175,7 +193,7 @@ def payment_webhook(request):
 def payment_processed_callback(request):
     """
     The view the user is redirected back to from Paymob.
-    It checks the 'success' query parameter to give immediate feedback.
+    Checks the 'success' query parameter to give immediate user feedback.
     """
     success = request.GET.get('success') == 'true'
     
@@ -187,33 +205,48 @@ def payment_processed_callback(request):
     return redirect('orders:order_history')
 
 
-# --- PREVIOUSLY EXISTING VIEWS (Unchanged) ---
-
 @login_required
 def order_success_view(request, order_id):
+    """
+    Displays a simple success page after an order is confirmed by the webhook.
+    """
     order = get_object_or_404(Order, id=order_id, user=request.user)
     return render(request, 'orders/order_success.html', {'order': order})
 
+
 @login_required
 def order_history_view(request):
+    """
+    Displays a list of all past orders for the logged-in user.
+    """
     orders = Order.objects.filter(user=request.user).order_by('-created_at')
     context = {'orders': orders}
     return render(request, 'orders/order_history.html', context)
 
+
 @login_required
 def order_detail_view(request, order_id):
+    """
+    Displays the detailed information for a single order, including its shipments.
+    """
     order = get_object_or_404(Order, id=order_id, user=request.user)
     shipments = order.shipments.prefetch_related('items__offer__variant__parent_product', 'seller').all()
     context = {'order': order, 'shipments': shipments}
     return render(request, 'orders/order_detail.html', context)
 
+
 @login_required
 @transaction.atomic
 def initiate_return_view(request, order_id):
+    """
+    Allows a user to initiate a return request for a completed order.
+    """
     order = get_object_or_404(Order, id=order_id, user=request.user)
+
     if order.status != Order.OrderStatus.DELIVERED:
         messages.error(request, "You can only initiate a return for delivered orders.")
         return redirect('orders:order_detail', order_id=order.id)
+        
     if request.method == 'POST':
         form = ReturnRequestForm(request.POST, order=order)
         if form.is_valid():
@@ -224,5 +257,6 @@ def initiate_return_view(request, order_id):
             return redirect('orders:order_detail', order_id=order.id)
     else:
         form = ReturnRequestForm(order=order)
+        
     context = {'form': form, 'order': order}
     return render(request, 'orders/initiate_return.html', context)

@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const mainImage = document.getElementById('mainProductImage');
     const thumbnailContainer = document.getElementById('thumbnailContainer');
     const variantSelector = document.getElementById('variantSelector');
-    const variantMap = JSON.parse(document.getElementById('variant-map-data').textContent);
+    const variantDataMap = JSON.parse(document.getElementById('variant-data-map').textContent);
     
     const priceElement = document.getElementById('buy-box-price');
     const stockElement = document.getElementById('buy-box-stock-status');
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const button = event.target;
                 const group = button.closest('.attribute-group');
 
-                // If this button is already active, do nothing to prevent refetching.
+                // If this button is already active, do nothing to prevent re-rendering.
                 if (button.classList.contains('active')) {
                     return;
                 }
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update the text showing the selected value
                 const selectedValueEl = group.querySelector('.selected-value');
                 if (selectedValueEl) {
-                    selectedValueEl.textContent = button.textContent.trim();
+                    selectedValueEl.textContent = `: ${button.textContent.trim()}`;
                 }
 
                 findVariantAndUpdateUI();
@@ -73,47 +73,32 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Create a unique key based on the selected attributes to find the variant
+        // Create a unique key from the sorted IDs of the selected attributes
         const selectedIds = Array.from(selectedOptions).map(btn => btn.dataset.valueId);
         selectedIds.sort((a, b) => a - b); // Sort numerically for a consistent key
         const variantKey = selectedIds.join('-');
         
-        const variantId = variantMap[variantKey];
+        // Look up the complete data for the variant from the pre-loaded map
+        const variantData = variantDataMap[variantKey];
 
-        if (variantId) {
-            fetchVariantData(variantId);
+        if (variantData) {
+            updateUI(variantData);
         } else {
             disableBuyBox("This combination is currently unavailable.");
-            // Reset images to the parent product's default image
+            // Reset images to the parent product's default image if combination is invalid
             updateImageGallery(null, mainImage.dataset.defaultImage); 
         }
     }
 
-    async function fetchVariantData(variantId) {
-        try {
-            const url = `/products/api/variant/${variantId}/`;
-            const response = await fetch(url);
-            const result = await response.json();
-
-            // Check the 'status' field in the JSON payload
-            if (result.status === 'ok') {
-                updateBuyBox(result);
-                updateImageGallery(result.image_urls);
-            } else if (result.status === 'unavailable') {
-                disableBuyBox("This specific variant is currently unavailable.");
-                updateImageGallery(result.image_urls);
-            } else { // Handles the 'error' status from the API
-                throw new Error(result.message || 'An unknown error occurred.');
-            }
-            
-        } catch (error) {
-            disableBuyBox("Error loading variant data.");
-        }
+    function updateUI(data) {
+        // This is a wrapper function to update all parts of the page
+        updateBuyBox(data);
+        updateImageGallery(data.image_urls);
     }
 
     function updateBuyBox(data) {
-        priceElement.textContent = `$${data.price}`;
-        offerIdInput.value = data.offer_id;
+        priceElement.textContent = data.price ? `$${data.price}` : 'N/A';
+        offerIdInput.value = data.offer_id || '';
         
         if (data.in_stock) {
             stockElement.textContent = 'In Stock.';
@@ -121,7 +106,8 @@ document.addEventListener('DOMContentLoaded', function() {
             addToCartButton.disabled = false;
             addToCartButton.textContent = 'Add to Cart';
         } else {
-            disableBuyBox('Out of Stock.');
+            // Handle both out of stock and variants with no offers
+            disableBuyBox(data.price ? 'Out of Stock.' : 'Currently unavailable.');
         }
     }
 
@@ -158,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         } else {
             // Final fallback to a placeholder if no images are available at all
-            mainImage.src = "/static/images/no_image.png"; // Use a known static path
+            mainImage.src = mainImage.dataset.defaultImage;
         }
     }
 });

@@ -9,8 +9,7 @@
         {% with feature_image=product.get_feature_image %}
         <div class="main-image-container">
             <img src="{% if feature_image %}{{ feature_image.image.url }}{% else %}{% static 'images/no_image.png' %}{% endif %}"
-                 alt="{{ product.title }}"
-                 class="main-image" id="mainProductImage"
+                 alt="{{ product.title }}" class="main-image" id="mainProductImage"
                  data-default-image="{% if feature_image %}{{ feature_image.image.url }}{% else %}{% static 'images/no_image.png' %}{% endif %}">
         </div>
         <div class="thumbnail-container" id="thumbnailContainer">
@@ -25,23 +24,20 @@
         <h1 class="product-title">{{ product.title }}</h1>
         <p class="product-brand">Brand: <a href="#">{{ product.brand }}</a></p>
         <hr>
-
-        <div class="attributes-section" id="variantSelector">
+        <div id="variantSelector">
             {% for attr_name, attr_values in attributes_data.items %}
-                <div class="attribute-group mb-3" data-attribute-group="{{ attr_name }}">
-                    <strong>{{ attr_name }}</strong><span class="selected-value text-muted" id="selected-{{ attr_name|slugify }}"></span>
-                    <div class="variant-options mt-1">
-                        {% for value in attr_values %}
-                            <button class="btn btn-sm btn-outline-secondary variant-option-btn"
-                                    data-value-id="{{ value.id }}">
-                                {{ value.value }}
-                            </button>
-                        {% endfor %}
-                    </div>
+            <div class="attribute-group mb-3">
+                <strong>{{ attr_name }}</strong><span class="selected-value text-muted" id="selected-{{ attr_name|slugify }}"></span>
+                <div class="variant-options mt-1">
+                    {% for value in attr_values %}
+                    <button class="btn btn-sm btn-outline-secondary variant-option-btn" data-value-id="{{ value.id }}">
+                        {{ value.value }}
+                    </button>
+                    {% endfor %}
                 </div>
+            </div>
             {% endfor %}
         </div>
-
         <div class="product-description">
             <h3>About this item</h3>
             <p>{{ product.description|linebreaks }}</p>
@@ -64,89 +60,7 @@
             </div>
             <button type="submit" class="btn btn-warning w-100 mb-2" id="add-to-cart-button" disabled>Select Options</button>
         </form>
-        {% if user.is_authenticated %}
-        <form action="{% url 'users:add_to_wishlist' product.id %}" method="post" class="d-grid mt-2">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-outline-secondary btn-sm">Add to Wish List</button>
-        </form>
-        {% endif %}
     </aside>
-</div>
-
-<div class="reviews-section mt-5">
-    <hr>
-    <h3>Customer Reviews</h3>
-    {% if can_review %}
-        <a href="{% url 'reviews:add_review' product.id %}" class="btn btn-primary mb-3">Write a review</a>
-    {% endif %}
-    
-    {% for review in reviews %}
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5 class="card-title">{{ review.title }}</h5>
-                <h6 class="card-subtitle mb-2 text-muted">
-                    Rating: {{ review.rating }}/5 by {{ review.customer.username }}
-                    {% if review.verified_purchase %}<span class="badge bg-success ms-2">Verified Purchase</span>{% endif %}
-                </h6>
-                <p class="card-text">{{ review.text|linebreaks }}</p>
-            </div>
-        </div>
-    {% empty %}
-        <p>No reviews yet. Be the first to write one!</p>
-    {% endfor %}
-</div>
-
-<div class="q-and-a-section mt-5">
-    <hr>
-    <h3>Customer Questions & Answers</h3>
-    
-    {% if user.is_authenticated %}
-    <div class="card my-4">
-        <div class="card-body">
-            <h5 class="card-title">Have a question?</h5>
-            <form action="{% url 'reviews:ask_question' product.id %}" method="post">
-                {% csrf_token %}
-                {{ question_form.text }}
-                <button type="submit" class="btn btn-primary mt-2">Ask Question</button>
-            </form>
-        </div>
-    </div>
-    {% else %}
-    <div class="alert alert-info">
-        <a href="{% url 'users:login' %}?next={{ request.path }}">Log in</a> to ask a question.
-    </div>
-    {% endif %}
-
-    {% for question in questions %}
-        <div class="qa-item mb-4">
-            <p><strong>Question:</strong> {{ question.text }}</p>
-            <p class="text-muted small">Asked by {{ question.customer.username }} on {{ question.created_at|date:"F d, Y" }}</p>
-            
-            <div class="answers ps-4">
-                {% for answer in question.answers.all %}
-                    <div class="answer-item mb-2 border-start ps-3">
-                        <p><strong>Answer:</strong> {{ answer.text|linebreaksbr }}</p>
-                        <p class="text-muted small">Answered by {{ answer.customer.username }} on {{ answer.created_at|date:"F d, Y" }}</p>
-                    </div>
-                {% empty %}
-                    <p class="small fst-italic">No answers yet.</p>
-                {% endfor %}
-
-                {% if user.is_authenticated %}
-                <details class="mt-2">
-                    <summary style="cursor: pointer;">Answer this question</summary>
-                    <form action="{% url 'reviews:post_answer' question.id %}" method="post" class="mt-2">
-                        {% csrf_token %}
-                        <textarea name="text" class="form-control" rows="2" required placeholder="Contribute an answer..."></textarea>
-                        <button type="submit" class="btn btn-secondary btn-sm mt-2">Post Answer</button>
-                    </form>
-                </details>
-                {% endif %}
-            </div>
-        </div>
-    {% empty %}
-        <p>No questions have been asked yet. Be the first!</p>
-    {% endfor %}
 </div>
 
 {{ variant_data_json|json_script:"variant-data-map" }}
